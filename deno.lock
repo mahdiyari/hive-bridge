@@ -1,0 +1,582 @@
+{
+  "version": "4",
+  "specifiers": {
+    "jsr:@noble/curves@^1.8.1": "1.8.1",
+    "jsr:@noble/hashes@1.7.1": "1.7.1",
+    "jsr:@noble/hashes@^1.7.1": "1.7.1",
+    "jsr:@oak/commons@1": "1.0.0",
+    "jsr:@oak/oak@^17.1.4": "17.1.4",
+    "jsr:@std/assert@1": "1.0.11",
+    "jsr:@std/bytes@1": "1.0.5",
+    "jsr:@std/bytes@^1.0.5": "1.0.5",
+    "jsr:@std/crypto@1": "1.0.4",
+    "jsr:@std/crypto@^1.0.4": "1.0.4",
+    "jsr:@std/encoding@1": "1.0.7",
+    "jsr:@std/encoding@^1.0.5": "1.0.6",
+    "jsr:@std/encoding@^1.0.7": "1.0.7",
+    "jsr:@std/http@1": "1.0.13",
+    "jsr:@std/internal@^1.0.5": "1.0.5",
+    "jsr:@std/media-types@1": "1.1.0",
+    "jsr:@std/path@1": "1.0.8",
+    "jsr:@std/uuid@^1.0.5": "1.0.5",
+    "npm:@noble/hashes@^1.7.1": "1.7.1",
+    "npm:@types/node@*": "22.12.0",
+    "npm:ethereumjs-util@^7.1.5": "7.1.5",
+    "npm:ethers@^6.13.5": "6.13.5",
+    "npm:hive-tx@^6.0.6": "6.0.6",
+    "npm:path-to-regexp@^6.3.0": "6.3.0",
+    "npm:selfsigned@^2.4.1": "2.4.1"
+  },
+  "jsr": {
+    "@noble/curves@1.8.1": {
+      "integrity": "906a3cd5be77d9ecf4b82266f6d04bdae590038192d38f3a38d7279019c9ddb0",
+      "dependencies": [
+        "jsr:@noble/hashes@1.7.1"
+      ]
+    },
+    "@noble/hashes@1.7.1": {
+      "integrity": "2c29f1dc07943155f5c7384be6f570a749c2afee95a0557cdae02b4fd5956134"
+    },
+    "@oak/commons@1.0.0": {
+      "integrity": "49805b55603c3627a9d6235c0655aa2b6222d3036b3a13ff0380c16368f607ac",
+      "dependencies": [
+        "jsr:@std/assert",
+        "jsr:@std/bytes@1",
+        "jsr:@std/crypto@1",
+        "jsr:@std/encoding@1",
+        "jsr:@std/http",
+        "jsr:@std/media-types"
+      ]
+    },
+    "@oak/oak@17.1.4": {
+      "integrity": "60530b582bf276ff741e39cc664026781aa08dd5f2bc5134d756cc427bf2c13e",
+      "dependencies": [
+        "jsr:@oak/commons",
+        "jsr:@std/assert",
+        "jsr:@std/bytes@1",
+        "jsr:@std/http",
+        "jsr:@std/media-types",
+        "jsr:@std/path",
+        "npm:path-to-regexp"
+      ]
+    },
+    "@std/assert@1.0.11": {
+      "integrity": "2461ef3c368fe88bc60e186e7744a93112f16fd110022e113a0849e94d1c83c1",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/bytes@1.0.4": {
+      "integrity": "11a0debe522707c95c7b7ef89b478c13fb1583a7cfb9a85674cd2cc2e3a28abc"
+    },
+    "@std/bytes@1.0.5": {
+      "integrity": "4465dd739d7963d964c809202ebea6d5c6b8e3829ef25c6a224290fbb8a1021e"
+    },
+    "@std/crypto@1.0.3": {
+      "integrity": "a2a32f51ddef632d299e3879cd027c630dcd4d1d9a5285d6e6788072f4e51e7f"
+    },
+    "@std/crypto@1.0.4": {
+      "integrity": "cee245c453bd5366207f4d8aa25ea3e9c86cecad2be3fefcaa6cb17203d79340"
+    },
+    "@std/encoding@1.0.6": {
+      "integrity": "ca87122c196e8831737d9547acf001766618e78cd8c33920776c7f5885546069"
+    },
+    "@std/encoding@1.0.7": {
+      "integrity": "f631247c1698fef289f2de9e2a33d571e46133b38d042905e3eac3715030a82d"
+    },
+    "@std/http@1.0.12": {
+      "integrity": "85246d8bfe9c8e2538518725b158bdc31f616e0869255f4a8d9e3de919cab2aa",
+      "dependencies": [
+        "jsr:@std/encoding@^1.0.5"
+      ]
+    },
+    "@std/http@1.0.13": {
+      "integrity": "d29618b982f7ae44380111f7e5b43da59b15db64101198bb5f77100d44eb1e1e",
+      "dependencies": [
+        "jsr:@std/encoding@^1.0.7"
+      ]
+    },
+    "@std/internal@1.0.5": {
+      "integrity": "54a546004f769c1ac9e025abd15a76b6671ddc9687e2313b67376125650dc7ba"
+    },
+    "@std/media-types@1.1.0": {
+      "integrity": "c9d093f0c05c3512932b330e3cc1fe1d627b301db33a4c2c2185c02471d6eaa4"
+    },
+    "@std/path@1.0.8": {
+      "integrity": "548fa456bb6a04d3c1a1e7477986b6cffbce95102d0bb447c67c4ee70e0364be"
+    },
+    "@std/uuid@1.0.5": {
+      "integrity": "d0b8da73ec1934c32346e3a090d526f77dded587664859afabae0cc2c782428b",
+      "dependencies": [
+        "jsr:@std/bytes@^1.0.5",
+        "jsr:@std/crypto@^1.0.4"
+      ]
+    }
+  },
+  "npm": {
+    "@adraffy/ens-normalize@1.10.1": {
+      "integrity": "sha512-96Z2IP3mYmF1Xg2cDm8f1gWGf/HUVedQ3FMifV4kG/PQ4yEP51xDtRAEfhVNt5f/uzpNkZHwWQuUcu6D6K+Ekw=="
+    },
+    "@noble/ciphers@1.2.1": {
+      "integrity": "sha512-rONPWMC7PeExE077uLE4oqWrZ1IvAfz3oH9LibVAcVCopJiA9R62uavnbEzdkVmJYI6M6Zgkbeb07+tWjlq2XA=="
+    },
+    "@noble/curves@1.2.0": {
+      "integrity": "sha512-oYclrNgRaM9SsBUBVbb8M6DTV7ZHRTKugureoYEncY5c65HOmRzvSiTE3y5CYaPYJA/GVkrhXEoF0M3Ya9PMnw==",
+      "dependencies": [
+        "@noble/hashes@1.3.2"
+      ]
+    },
+    "@noble/curves@1.8.1": {
+      "integrity": "sha512-warwspo+UYUPep0Q+vtdVB4Ugn8GGQj8iyB3gnRWsztmUHTI3S1nhdiWNsPUGL0vud7JlRRk1XEu7Lq1KGTnMQ==",
+      "dependencies": [
+        "@noble/hashes@1.7.1"
+      ]
+    },
+    "@noble/hashes@1.3.2": {
+      "integrity": "sha512-MVC8EAQp7MvEcm30KWENFjgR+Mkmf+D189XJTkFIlwohU5hcBbn1ZkKq7KVTi2Hme3PMGF390DaL52beVrIihQ=="
+    },
+    "@noble/hashes@1.7.1": {
+      "integrity": "sha512-B8XBPsn4vT/KJAGqDzbwztd+6Yte3P4V7iafm24bxgDe/mlRuK6xmWPuCNrKt2vDafZ8MfJLlchDG/vYafQEjQ=="
+    },
+    "@types/bn.js@5.1.6": {
+      "integrity": "sha512-Xh8vSwUeMKeYYrj3cX4lGQgFSF/N03r+tv4AiLl1SucqV+uTQpxRcnM8AkXKHwYP9ZPXOYXRr2KPXpVlIvqh9w==",
+      "dependencies": [
+        "@types/node@22.12.0"
+      ]
+    },
+    "@types/node-forge@1.3.11": {
+      "integrity": "sha512-FQx220y22OKNTqaByeBGqHWYz4cl94tpcxeFdvBo3wjG6XPBuZ0BNgNZRV5J5TFmmcsJ4IzsLkmGRiQbnYsBEQ==",
+      "dependencies": [
+        "@types/node@22.12.0"
+      ]
+    },
+    "@types/node@22.12.0": {
+      "integrity": "sha512-Fll2FZ1riMjNmlmJOdAyY5pUbkftXslB5DgEzlIuNaiWhXd00FhWxVC/r4yV/4wBb9JfImTu+jiSvXTkJ7F/gA==",
+      "dependencies": [
+        "undici-types@6.20.0"
+      ]
+    },
+    "@types/node@22.7.5": {
+      "integrity": "sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==",
+      "dependencies": [
+        "undici-types@6.19.8"
+      ]
+    },
+    "@types/pbkdf2@3.1.2": {
+      "integrity": "sha512-uRwJqmiXmh9++aSu1VNEn3iIxWOhd8AHXNSdlaLfdAAdSTY9jYVeGWnzejM3dvrkbqE3/hyQkQQ29IFATEGlew==",
+      "dependencies": [
+        "@types/node@22.12.0"
+      ]
+    },
+    "@types/secp256k1@4.0.6": {
+      "integrity": "sha512-hHxJU6PAEUn0TP4S/ZOzuTUvJWuZ6eIKeNKb5RBpODvSl6hp1Wrw4s7ATY50rklRCScUDpHzVA/DQdSjJ3UoYQ==",
+      "dependencies": [
+        "@types/node@22.12.0"
+      ]
+    },
+    "aes-js@4.0.0-beta.5": {
+      "integrity": "sha512-G965FqalsNyrPqgEGON7nIx1e/OVENSgiEIzyC63haUMuvNnwIgIjMs52hlTCKhkBny7A2ORNlfY9Zu+jmGk1Q=="
+    },
+    "asynckit@0.4.0": {
+      "integrity": "sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q=="
+    },
+    "axios@1.7.9": {
+      "integrity": "sha512-LhLcE7Hbiryz8oMDdDptSrWowmB4Bl6RCt6sIJKpRB4XtVf0iEgewX3au/pJqm+Py1kCASkb/FFKjxQaLtxJvw==",
+      "dependencies": [
+        "follow-redirects",
+        "form-data",
+        "proxy-from-env"
+      ]
+    },
+    "base-x@3.0.10": {
+      "integrity": "sha512-7d0s06rR9rYaIWHkpfLIFICM/tkSVdoPC9qYAQRpxn9DdKNWNsKC0uk++akckyLq16Tx2WIinnZ6WRriAt6njQ==",
+      "dependencies": [
+        "safe-buffer"
+      ]
+    },
+    "base-x@5.0.0": {
+      "integrity": "sha512-sMW3VGSX1QWVFA6l8U62MLKz29rRfpTlYdCqLdpLo1/Yd4zZwSbnUaDfciIAowAqvq7YFnWq9hrhdg1KYgc1lQ=="
+    },
+    "blakejs@1.2.1": {
+      "integrity": "sha512-QXUSXI3QVc/gJME0dBpXrag1kbzOqCjCX8/b54ntNyW6sjtoqxqRk3LTmXzaJoh71zMsDCjM+47jS7XiwN/+fQ=="
+    },
+    "bn.js@4.12.1": {
+      "integrity": "sha512-k8TVBiPkPJT9uHLdOKfFpqcfprwBFOAAXXozRubr7R7PfIuKvQlzcI4M0pALeqXN09vdaMbUdUj+pass+uULAg=="
+    },
+    "bn.js@5.2.1": {
+      "integrity": "sha512-eXRvHzWyYPBuB4NBy0cmYQjGitUrtqwbvlzP3G6VFnNRbsZQIxQ10PbKKHt8gZ/HW/D/747aDl+QkDqg3KQLMQ=="
+    },
+    "brorand@1.1.0": {
+      "integrity": "sha512-cKV8tMCEpQs4hK/ik71d6LrPOnpkpGBR0wzxqr68g2m/LB2GxVYQroAjMJZRVM1Y4BCjCKc3vAamxSzOY2RP+w=="
+    },
+    "browserify-aes@1.2.0": {
+      "integrity": "sha512-+7CHXqGuspUn/Sl5aO7Ea0xWGAtETPXNSAjHo48JfLdPWcMng33Xe4znFvQweqc/uzk5zSOI3H52CYnjCfb5hA==",
+      "dependencies": [
+        "buffer-xor",
+        "cipher-base",
+        "create-hash",
+        "evp_bytestokey",
+        "inherits",
+        "safe-buffer"
+      ]
+    },
+    "bs58@4.0.1": {
+      "integrity": "sha512-Ok3Wdf5vOIlBrgCvTq96gBkJw+JUEzdBgyaza5HLtPm7yTHkjRy8+JzNyHF7BHa0bNWOQIp3m5YF0nnFcOIKLw==",
+      "dependencies": [
+        "base-x@3.0.10"
+      ]
+    },
+    "bs58@6.0.0": {
+      "integrity": "sha512-PD0wEnEYg6ijszw/u8s+iI3H17cTymlrwkKhDhPZq+Sokl3AU4htyBFTjAeNAlCCmg0f53g6ih3jATyCKftTfw==",
+      "dependencies": [
+        "base-x@5.0.0"
+      ]
+    },
+    "bs58check@2.1.2": {
+      "integrity": "sha512-0TS1jicxdU09dwJMNZtVAfzPi6Q6QeN0pM1Fkzrjn+XYHvzMKPU3pHVpva+769iNVSfIYWf7LJ6WR+BuuMf8cA==",
+      "dependencies": [
+        "bs58@4.0.1",
+        "create-hash",
+        "safe-buffer"
+      ]
+    },
+    "buffer-xor@1.0.3": {
+      "integrity": "sha512-571s0T7nZWK6vB67HI5dyUF7wXiNcfaPPPTl6zYCNApANjIvYJTg7hlud/+cJpdAhS7dVzqMLmfhfHR3rAcOjQ=="
+    },
+    "cipher-base@1.0.6": {
+      "integrity": "sha512-3Ek9H3X6pj5TgenXYtNWdaBon1tgYCaebd+XPg0keyjEbEfkD4KkmAxkQ/i1vYvxdcT5nscLBfq9VJRmCBcFSw==",
+      "dependencies": [
+        "inherits",
+        "safe-buffer"
+      ]
+    },
+    "combined-stream@1.0.8": {
+      "integrity": "sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==",
+      "dependencies": [
+        "delayed-stream"
+      ]
+    },
+    "create-hash@1.2.0": {
+      "integrity": "sha512-z00bCGNHDG8mHAkP7CtT1qVu+bFQUPjYq/4Iv3C3kWjTFV10zIjfSoeqXo9Asws8gwSHDGj/hl2u4OGIjapeCg==",
+      "dependencies": [
+        "cipher-base",
+        "inherits",
+        "md5.js",
+        "ripemd160",
+        "sha.js"
+      ]
+    },
+    "create-hmac@1.1.7": {
+      "integrity": "sha512-MJG9liiZ+ogc4TzUwuvbER1JRdgvUFSB5+VR/g5h82fGaIRWMWddtKBHi7/sVhfjQZ6SehlyhvQYrcYkaUIpLg==",
+      "dependencies": [
+        "cipher-base",
+        "create-hash",
+        "inherits",
+        "ripemd160",
+        "safe-buffer",
+        "sha.js"
+      ]
+    },
+    "delayed-stream@1.0.0": {
+      "integrity": "sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ=="
+    },
+    "elliptic@6.6.1": {
+      "integrity": "sha512-RaddvvMatK2LJHqFJ+YA4WysVN5Ita9E35botqIYspQ4TkRAlCicdzKOjlyv/1Za5RyTNn7di//eEV0uTAfe3g==",
+      "dependencies": [
+        "bn.js@4.12.1",
+        "brorand",
+        "hash.js",
+        "hmac-drbg",
+        "inherits",
+        "minimalistic-assert",
+        "minimalistic-crypto-utils"
+      ]
+    },
+    "ethereum-cryptography@0.1.3": {
+      "integrity": "sha512-w8/4x1SGGzc+tO97TASLja6SLd3fRIK2tLVcV2Gx4IB21hE19atll5Cq9o3d0ZmAYC/8aw0ipieTSiekAea4SQ==",
+      "dependencies": [
+        "@types/pbkdf2",
+        "@types/secp256k1",
+        "blakejs",
+        "browserify-aes",
+        "bs58check",
+        "create-hash",
+        "create-hmac",
+        "hash.js",
+        "keccak",
+        "pbkdf2",
+        "randombytes",
+        "safe-buffer",
+        "scrypt-js",
+        "secp256k1",
+        "setimmediate"
+      ]
+    },
+    "ethereumjs-util@7.1.5": {
+      "integrity": "sha512-SDl5kKrQAudFBUe5OJM9Ac6WmMyYmXX/6sTmLZ3ffG2eY6ZIGBes3pEDxNN6V72WyOw4CPD5RomKdsa8DAAwLg==",
+      "dependencies": [
+        "@types/bn.js",
+        "bn.js@5.2.1",
+        "create-hash",
+        "ethereum-cryptography",
+        "rlp"
+      ]
+    },
+    "ethers@6.13.5": {
+      "integrity": "sha512-+knKNieu5EKRThQJWwqaJ10a6HE9sSehGeqWN65//wE7j47ZpFhKAnHB/JJFibwwg61I/koxaPsXbXpD/skNOQ==",
+      "dependencies": [
+        "@adraffy/ens-normalize",
+        "@noble/curves@1.2.0",
+        "@noble/hashes@1.3.2",
+        "@types/node@22.7.5",
+        "aes-js",
+        "tslib",
+        "ws"
+      ]
+    },
+    "evp_bytestokey@1.0.3": {
+      "integrity": "sha512-/f2Go4TognH/KvCISP7OUsHn85hT9nUkxxA9BEWxFn+Oj9o8ZNLm/40hdlgSLyuOimsrTKLUMEorQexp/aPQeA==",
+      "dependencies": [
+        "md5.js",
+        "safe-buffer"
+      ]
+    },
+    "follow-redirects@1.15.9": {
+      "integrity": "sha512-gew4GsXizNgdoRyqmyfMHyAmXsZDk6mHkSxZFCzW9gwlbtOW44CDtYavM+y+72qD/Vq2l550kMF52DT8fOLJqQ=="
+    },
+    "form-data@4.0.1": {
+      "integrity": "sha512-tzN8e4TX8+kkxGPK8D5u0FNmjPUjw3lwC9lSLxxoB/+GtsJG91CO8bSWy73APlgAZzZbXEYZJuxjkHH2w+Ezhw==",
+      "dependencies": [
+        "asynckit",
+        "combined-stream",
+        "mime-types"
+      ]
+    },
+    "hash-base@3.1.0": {
+      "integrity": "sha512-1nmYp/rhMDiE7AYkDw+lLwlAzz0AntGIe51F3RfFfEqyQ3feY2eI/NcwC6umIQVOASPMsWJLJScWKSSvzL9IVA==",
+      "dependencies": [
+        "inherits",
+        "readable-stream",
+        "safe-buffer"
+      ]
+    },
+    "hash.js@1.1.7": {
+      "integrity": "sha512-taOaskGt4z4SOANNseOviYDvjEJinIkRgmp7LbKP2YTTmVxWBl87s/uzK9r+44BclBSp2X7K1hqeNfz9JbBeXA==",
+      "dependencies": [
+        "inherits",
+        "minimalistic-assert"
+      ]
+    },
+    "hive-tx@6.0.6": {
+      "integrity": "sha512-DCxcXOR+u/BAN2+gqePg3jwcU6PHH8uoGLlKmjfbcyGUJdeP37ZlNpXo8JcDv5ER2nPqobgbxR7SD0Bdmw4IvQ==",
+      "dependencies": [
+        "@noble/ciphers",
+        "@noble/curves@1.8.1",
+        "@noble/hashes@1.7.1",
+        "axios",
+        "bs58@6.0.0"
+      ]
+    },
+    "hmac-drbg@1.0.1": {
+      "integrity": "sha512-Tti3gMqLdZfhOQY1Mzf/AanLiqh1WTiJgEj26ZuYQ9fbkLomzGchCws4FyrSd4VkpBfiNhaE1On+lOz894jvXg==",
+      "dependencies": [
+        "hash.js",
+        "minimalistic-assert",
+        "minimalistic-crypto-utils"
+      ]
+    },
+    "inherits@2.0.4": {
+      "integrity": "sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ=="
+    },
+    "keccak@3.0.4": {
+      "integrity": "sha512-3vKuW0jV8J3XNTzvfyicFR5qvxrSAGl7KIhvgOu5cmWwM7tZRj3fMbj/pfIf4be7aznbc+prBWGjywox/g2Y6Q==",
+      "dependencies": [
+        "node-addon-api@2.0.2",
+        "node-gyp-build",
+        "readable-stream"
+      ]
+    },
+    "md5.js@1.3.5": {
+      "integrity": "sha512-xitP+WxNPcTTOgnTJcrhM0xvdPepipPSf3I8EIpGKeFLjt3PlJLIDG3u8EX53ZIubkb+5U2+3rELYpEhHhzdkg==",
+      "dependencies": [
+        "hash-base",
+        "inherits",
+        "safe-buffer"
+      ]
+    },
+    "mime-db@1.52.0": {
+      "integrity": "sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg=="
+    },
+    "mime-types@2.1.35": {
+      "integrity": "sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==",
+      "dependencies": [
+        "mime-db"
+      ]
+    },
+    "minimalistic-assert@1.0.1": {
+      "integrity": "sha512-UtJcAD4yEaGtjPezWuO9wC4nwUnVH/8/Im3yEHQP4b67cXlD/Qr9hdITCU1xDbSEXg2XKNaP8jsReV7vQd00/A=="
+    },
+    "minimalistic-crypto-utils@1.0.1": {
+      "integrity": "sha512-JIYlbt6g8i5jKfJ3xz7rF0LXmv2TkDxBLUkiBeZ7bAx4GnnNMr8xFpGnOxn6GhTEHx3SjRrZEoU+j04prX1ktg=="
+    },
+    "node-addon-api@2.0.2": {
+      "integrity": "sha512-Ntyt4AIXyaLIuMHF6IOoTakB3K+RWxwtsHNRxllEoA6vPwP9o4866g6YWDLUdnucilZhmkxiHwHr11gAENw+QA=="
+    },
+    "node-addon-api@5.1.0": {
+      "integrity": "sha512-eh0GgfEkpnoWDq+VY8OyvYhFEzBk6jIYbRKdIlyTiAXIVJ8PyBaKb0rp7oDtoddbdoHWhq8wwr+XZ81F1rpNdA=="
+    },
+    "node-forge@1.3.1": {
+      "integrity": "sha512-dPEtOeMvF9VMcYV/1Wb8CPoVAXtp6MKMlcbAt4ddqmGqUJ6fQZFXkNZNkNlfevtNkGtaSoXf/vNNNSvgrdXwtA=="
+    },
+    "node-gyp-build@4.8.4": {
+      "integrity": "sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ=="
+    },
+    "path-to-regexp@6.3.0": {
+      "integrity": "sha512-Yhpw4T9C6hPpgPeA28us07OJeqZ5EzQTkbfwuhsUg0c237RomFoETJgmp2sa3F/41gfLE6G5cqcYwznmeEeOlQ=="
+    },
+    "pbkdf2@3.1.2": {
+      "integrity": "sha512-iuh7L6jA7JEGu2WxDwtQP1ddOpaJNC4KlDEFfdQajSGgGPNi4OyDc2R7QnbY2bR9QjBVGwgvTdNJZoE7RaxUMA==",
+      "dependencies": [
+        "create-hash",
+        "create-hmac",
+        "ripemd160",
+        "safe-buffer",
+        "sha.js"
+      ]
+    },
+    "proxy-from-env@1.1.0": {
+      "integrity": "sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg=="
+    },
+    "randombytes@2.1.0": {
+      "integrity": "sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==",
+      "dependencies": [
+        "safe-buffer"
+      ]
+    },
+    "readable-stream@3.6.2": {
+      "integrity": "sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==",
+      "dependencies": [
+        "inherits",
+        "string_decoder",
+        "util-deprecate"
+      ]
+    },
+    "ripemd160@2.0.2": {
+      "integrity": "sha512-ii4iagi25WusVoiC4B4lq7pbXfAp3D9v5CwfkY33vffw2+pkDjY1D8GaN7spsxvCSx8dkPqOZCEZyfxcmJG2IA==",
+      "dependencies": [
+        "hash-base",
+        "inherits"
+      ]
+    },
+    "rlp@2.2.7": {
+      "integrity": "sha512-d5gdPmgQ0Z+AklL2NVXr/IoSjNZFfTVvQWzL/AM2AOcSzYP2xjlb0AC8YyCLc41MSNf6P6QVtjgPdmVtzb+4lQ==",
+      "dependencies": [
+        "bn.js@5.2.1"
+      ]
+    },
+    "safe-buffer@5.2.1": {
+      "integrity": "sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ=="
+    },
+    "scrypt-js@3.0.1": {
+      "integrity": "sha512-cdwTTnqPu0Hyvf5in5asVdZocVDTNRmR7XEcJuIzMjJeSHybHl7vpB66AzwTaIg6CLSbtjcxc8fqcySfnTkccA=="
+    },
+    "secp256k1@4.0.4": {
+      "integrity": "sha512-6JfvwvjUOn8F/jUoBY2Q1v5WY5XS+rj8qSe0v8Y4ezH4InLgTEeOOPQsRll9OV429Pvo6BCHGavIyJfr3TAhsw==",
+      "dependencies": [
+        "elliptic",
+        "node-addon-api@5.1.0",
+        "node-gyp-build"
+      ]
+    },
+    "selfsigned@2.4.1": {
+      "integrity": "sha512-th5B4L2U+eGLq1TVh7zNRGBapioSORUeymIydxgFpwww9d2qyKvtuPU2jJuHvYAwwqi2Y596QBL3eEqcPEYL8Q==",
+      "dependencies": [
+        "@types/node-forge",
+        "node-forge"
+      ]
+    },
+    "setimmediate@1.0.5": {
+      "integrity": "sha512-MATJdZp8sLqDl/68LfQmbP8zKPLQNV6BIZoIgrscFDQ+RsvK/BxeDQOgyxKKoh0y/8h3BqVFnCqQ/gd+reiIXA=="
+    },
+    "sha.js@2.4.11": {
+      "integrity": "sha512-QMEp5B7cftE7APOjk5Y6xgrbWu+WkLVQwk8JNjZ8nKRciZaByEW6MubieAiToS7+dwvrjGhH8jRXz3MVd0AYqQ==",
+      "dependencies": [
+        "inherits",
+        "safe-buffer"
+      ]
+    },
+    "string_decoder@1.3.0": {
+      "integrity": "sha512-hkRX8U1WjJFd8LsDJ2yQ/wWWxaopEsABU1XfkM8A+j0+85JAGppt16cr1Whg6KIbb4okU6Mql6BOj+uup/wKeA==",
+      "dependencies": [
+        "safe-buffer"
+      ]
+    },
+    "tslib@2.7.0": {
+      "integrity": "sha512-gLXCKdN1/j47AiHiOkJN69hJmcbGTHI0ImLmbYLHykhgeN0jVGola9yVjFgzCUklsZQMW55o+dW7IXv3RCXDzA=="
+    },
+    "undici-types@6.19.8": {
+      "integrity": "sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw=="
+    },
+    "undici-types@6.20.0": {
+      "integrity": "sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg=="
+    },
+    "util-deprecate@1.0.2": {
+      "integrity": "sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw=="
+    },
+    "ws@8.17.1": {
+      "integrity": "sha512-6XQFvXTkbfUOZOKKILFG1PDK2NDQs4azKQl26T0YS5CxqWLgXajbPZ+h4gZekJyRqFU8pvnbAbbs/3TgRPy+GQ=="
+    }
+  },
+  "redirects": {
+    "https://deno.land/std/crypto/mod.ts": "https://deno.land/std@0.224.0/crypto/mod.ts"
+  },
+  "remote": {
+    "https://deno.land/std@0.218.2/assert/assert.ts": "bec068b2fccdd434c138a555b19a2c2393b71dfaada02b7d568a01541e67cdc5",
+    "https://deno.land/std@0.218.2/assert/assertion_error.ts": "9f689a101ee586c4ce92f52fa7ddd362e86434ffdf1f848e45987dc7689976b8",
+    "https://deno.land/std@0.218.2/bytes/concat.ts": "9cac3b4376afbef98ff03588eb3cf948e0d1eb6c27cfe81a7651ab6dd3adc54a",
+    "https://deno.land/std@0.218.2/crypto/_fnv/fnv32.ts": "ba2c5ef976b9f047d7ce2d33dfe18671afc75154bcf20ef89d932b2fe8820535",
+    "https://deno.land/std@0.218.2/crypto/_fnv/fnv64.ts": "580cadfe2ff333fe253d15df450f927c8ac7e408b704547be26aab41b5772558",
+    "https://deno.land/std@0.218.2/crypto/_fnv/mod.ts": "8dbb60f062a6e77b82f7a62ac11fabfba52c3cd408c21916b130d8f57a880f96",
+    "https://deno.land/std@0.218.2/crypto/_fnv/util.ts": "27b36ce3440d0a180af6bf1cfc2c326f68823288540a354dc1d636b781b9b75f",
+    "https://deno.land/std@0.218.2/crypto/_wasm/lib/deno_std_wasm_crypto.generated.mjs": "76c727912539737def4549bb62a96897f37eb334b979f49c57b8af7a1617635e",
+    "https://deno.land/std@0.218.2/crypto/_wasm/mod.ts": "c55f91473846827f077dfd7e5fc6e2726dee5003b6a5747610707cdc638a22ba",
+    "https://deno.land/std@0.218.2/crypto/crypto.ts": "b7bacddd990ad4193556697b88c7291ed61edc145fafbc060559984f3e8e4977",
+    "https://deno.land/std@0.218.2/crypto/mod.ts": "7e7971e8abd90addbb02640e43c124e28d10b07e88b61851049c40fc2b5eb04b",
+    "https://deno.land/std@0.218.2/crypto/timing_safe_equal.ts": "bc3622b5aec05e2d8b735bf60633425c34333c06cfb6c4a9f102e4a0f3931ced",
+    "https://deno.land/std@0.218.2/crypto/unstable_keystack.ts": "c2a6f6ed67a4e78745e3c9b490ebb7c12f6066f5c2fe0c69d353961909dc82dd",
+    "https://deno.land/std@0.218.2/encoding/_util.ts": "beacef316c1255da9bc8e95afb1fa56ed69baef919c88dc06ae6cb7a6103d376",
+    "https://deno.land/std@0.218.2/encoding/base64.ts": "b0fe5f1c55571dc9f091abc7d4830482f2f67ab4308c9c1b57071e770b7dcc74",
+    "https://deno.land/std@0.218.2/encoding/base64url.ts": "9cc46cf510436be63ac00ebf97a7de1993e603ca58e1853b344bf90d80ea9945",
+    "https://deno.land/std@0.218.2/uuid/_common.ts": "05c787c5735776c4e48e30294878332c39cb7738f50b209df4eb9f2b0facce4d",
+    "https://deno.land/std@0.218.2/uuid/constants.ts": "eb6c96871e968adf3355507d7ae79adce71525fd6c1ca55c51d32ace0196d64e",
+    "https://deno.land/std@0.218.2/uuid/mod.ts": "b9cb1cf73c3d87e15817486df7e885a63b74a7384768a927c708ccd045fcbf78",
+    "https://deno.land/std@0.218.2/uuid/v1.ts": "a089755e9ba5a172f3d568b617164d4692bd71e548b018e039d1bcb17d4f1bb6",
+    "https://deno.land/std@0.218.2/uuid/v3.ts": "aff081baee55498ed5804d006735a77b252ac1645e3b418058807218371de577",
+    "https://deno.land/std@0.218.2/uuid/v4.ts": "1319a2eeff7259adda416ec5f7997ded80d3165ef0787012793fc8621c18c493",
+    "https://deno.land/std@0.218.2/uuid/v5.ts": "f6771dc89e89f26e74a9b51d25d6b711c27d2ddf3a3650312dd46e7edfe2491e",
+    "https://deno.land/std@0.224.0/assert/assert.ts": "09d30564c09de846855b7b071e62b5974b001bb72a4b797958fe0660e7849834",
+    "https://deno.land/std@0.224.0/assert/assertion_error.ts": "ba8752bd27ebc51f723702fac2f54d3e94447598f54264a6653d6413738a8917",
+    "https://deno.land/std@0.224.0/crypto/_wasm/lib/deno_std_wasm_crypto.generated.mjs": "7cd490ae1553c97459bd02de4c3f0a552768a85621949b2366003f3cf84b99d7",
+    "https://deno.land/std@0.224.0/crypto/_wasm/mod.ts": "e89fbbc3c4722602ff975dd85f18273c7741ec766a9b68f6de4fd1d9876409f8",
+    "https://deno.land/std@0.224.0/crypto/crypto.ts": "e58d78f3db111a499261dbab037ec78cc89da0516a50e1f0205665980a3417e3",
+    "https://deno.land/std@0.224.0/crypto/mod.ts": "9148fb70ca3d64977e9487b2002d3b1026e8ad8a2078774b807586ba3c77e3bb",
+    "https://deno.land/std@0.224.0/crypto/timing_safe_equal.ts": "bc3622b5aec05e2d8b735bf60633425c34333c06cfb6c4a9f102e4a0f3931ced",
+    "https://deno.land/std@0.224.0/crypto/unstable_keystack.ts": "c2a6f6ed67a4e78745e3c9b490ebb7c12f6066f5c2fe0c69d353961909dc82dd",
+    "https://deno.land/std@0.224.0/encoding/_util.ts": "beacef316c1255da9bc8e95afb1fa56ed69baef919c88dc06ae6cb7a6103d376",
+    "https://deno.land/std@0.224.0/encoding/base64.ts": "dd59695391584c8ffc5a296ba82bcdba6dd8a84d41a6a539fbee8e5075286eaf",
+    "https://deno.land/std@0.224.0/encoding/base64url.ts": "ef40e0f18315ab539f17cebcc32839779e018d86dea9df39d94d302f342a1713"
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@noble/curves@^1.8.1",
+      "jsr:@noble/hashes@^1.7.1",
+      "jsr:@oak/oak@^17.1.4",
+      "jsr:@std/assert@1",
+      "jsr:@std/uuid@^1.0.5",
+      "npm:ethereumjs-util@^7.1.5",
+      "npm:ethers@^6.13.5",
+      "npm:hive-tx@^6.0.6",
+      "npm:selfsigned@^2.4.1"
+    ]
+  }
+}
