@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import * as uuid from '@std/uuid'
-import { messageChecksum } from '../helpers/message_checksum.ts'
-import { getMyIp } from '../helpers/get_my_ip.ts'
-import { checkPeerStatus } from '../helpers/check_peer_status.ts'
-import { messageHash } from '../helpers/message_hash.ts'
+import { messageChecksum } from '../helpers/p2p/message_checksum.ts'
+import { getMyIp } from '../helpers/general/get_my_ip.ts'
+import { checkPeerStatus } from '../helpers/p2p/check_peer_status.ts'
+import { messageHash } from '../helpers/p2p/message_hash.ts'
 import { isIPv4, isIPv6 } from 'node:net'
 import {
 	EventDetail,
@@ -16,7 +16,11 @@ import {
 	Peer,
 	PeerMessageEvent,
 } from '../helpers/p2p/types.ts'
-import { p2pMessages, pendingWraps } from './PendingHiveWraps.ts'
+import { p2pMessages, pendingWraps } from './PendingWraps.ts'
+import { pendingUnwraps } from './PendingUnwraps.ts'
+import { bytesToHex } from '@noble/hashes/utils'
+import { signHeartbeat, validateHeartbeat } from '../helpers/p2p/heartbeat.ts'
+import { PrivateKey } from 'hive-tx'
 // import { generate } from 'selfsigned'
 
 export class P2PNetwork {
@@ -32,9 +36,9 @@ export class P2PNetwork {
 	private myIP: string = 'none'
 	private event = new EventTarget()
 
-	constructor(knownPeers: string[], port: number) {
+	constructor(knownPeers: string[], port?: number) {
 		this.knownPeers = knownPeers
-		this.port = port
+		this.port = port || Number(Deno.env.get('P2P_PORT')) || 3018
 		this.myId = randomUUID()
 		this.startServer().then(() => {
 			this.discoverPeers()
@@ -43,6 +47,7 @@ export class P2PNetwork {
 		setInterval(() => {
 			this.messagesInLastSecond.clear()
 		}, 1_000)
+		this.initiateHeartbeat()
 	}
 
 	/** Receive messages from the P2P network */
@@ -67,7 +72,7 @@ export class P2PNetwork {
 			return
 		}
 		this.sendMessage({
-			type: 'SIGNATURE',
+			type: 'ETH_SIGNATURE',
 			data: {
 				operator,
 				message: {
@@ -75,6 +80,29 @@ export class P2PNetwork {
 					amount: wrap.message.amount,
 					blockNum: wrap.message.blockNum,
 					contract: wrap.message.contract,
+				},
+				signature,
+			},
+		})
+	}
+
+	/** Send a hive signature to all peers */
+	public sendHiveSignature(
+		operator: string,
+		ethTransactionHash: string,
+		signature: string,
+	) {
+		const digest = pendingUnwraps.getUnwrap(ethTransactionHash)?.digest().digest
+		if (!digest) {
+			return
+		}
+		this.sendMessage({
+			type: 'HIVE_SIGNATURE',
+			data: {
+				operator,
+				message: {
+					ethTransactionHash,
+					digest: bytesToHex(digest),
 				},
 				signature,
 			},
@@ -105,6 +133,20 @@ export class P2PNetwork {
 					const { socket, response } = Deno.upgradeWebSocket(request)
 					this.handleIncomingConnection(socket)
 					return response
+				}
+				if (request.method === 'GET') {
+					// We use /status on the p2p port to detect if peer is publicly accessible
+					const url = new URL(request.url)
+					if (url.pathname === '/status') {
+						return new Response(JSON.stringify({ status: 'OK' }), {
+							status: 200,
+							headers: {
+								'Content-Type': 'application/json',
+								'Cache-Control': 'no-store',
+								'Access-Control-Allow-Origin': '*',
+							},
+						})
+					}
 				}
 				return new Response('Not a websocket request', { status: 400 })
 			},
@@ -369,6 +411,44 @@ export class P2PNetwork {
 				)
 			}
 		}
+	}
+
+	// Operators send a heartbeat message every 90s
+	private initiateHeartbeat() {
+		this.handleHeartbeat()
+		const username = Deno.env.get('USERNAME')
+		const activeKey = Deno.env.get('ACTIVE_KEY')
+		if (!username || !activeKey) {
+			return
+		}
+		setInterval(() => {
+			const msg = {
+				operator: username,
+				peerId: this.myId,
+				timestamp: Date.now(),
+			}
+			const signature = signHeartbeat(msg, PrivateKey.from(activeKey))
+			this.sendMessage({
+				type: 'HEARTBEAT',
+				data: {
+					...msg,
+					signature,
+				},
+			})
+		}, 90_000)
+	}
+
+	private handleHeartbeat() {
+		this.event.addEventListener('peerMessage', (e) => {
+			const pe = e as PeerMessageEvent
+			const msg = pe.detail.data
+			if (msg.type === 'HEARTBEAT') {
+				const valid = validateHeartbeat(msg.data)
+				if (valid) {
+					// update peers or smth
+				}
+			}
+		})
 	}
 
 	private sendPeerList(peerId: string) {
