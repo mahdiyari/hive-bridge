@@ -22,6 +22,7 @@ export interface TransferBody {
 	memo: string
 	amount: string
 	blockNum: number
+	timestamp: number
 }
 
 // interface Block {

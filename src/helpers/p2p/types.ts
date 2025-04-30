@@ -20,7 +20,7 @@ export interface HelloAckMessage {
 }
 
 export interface SignatureMessage {
-	type: 'SIGNATURE'
+	type: 'ETH_SIGNATURE'
 	data: {
 		message: {
 			address: string
@@ -38,8 +38,20 @@ export interface HeartbeatMessage {
 	data: {
 		operator: string
 		peerId: string
-		headBlock: number
+		// headBlock: number
 		timestamp: number
+		signature: string
+	}
+}
+
+export interface HiveSignatureMessage {
+	type: 'HIVE_SIGNATURE'
+	data: {
+		message: {
+			ethTransactionHash: string
+			digest: string
+		}
+		operator: string
 		signature: string
 	}
 }
@@ -60,18 +72,24 @@ export interface FullHeartbeatMessage extends HeartbeatMessage {
 	timestamp: number
 	hash: string
 }
+export interface FullHiveSignatureMessage extends HiveSignatureMessage {
+	timestamp: number
+	hash: string
+}
 
 export type Message =
 	| HelloMessage
 	| HelloAckMessage
 	| SignatureMessage
 	| HeartbeatMessage
+	| HiveSignatureMessage
 
 export type FullMessage =
 	| FullHelloMessage
 	| FullHelloAckMessage
 	| FullSignatureMessage
 	| FullHeartbeatMessage
+	| FullHiveSignatureMessage
 
 // Create a custom event for redirecting the peer messages to the main app
 // All peers will dispatch this event onmessage

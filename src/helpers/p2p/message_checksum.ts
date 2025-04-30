@@ -1,5 +1,5 @@
 import { messageHash } from './message_hash.ts'
-import { FullMessage } from './p2p/types.ts'
+import { FullMessage } from './types.ts'
 
 /** Verify the hash of the message and verify the message is not older than 5 seconds */
 export const messageChecksum = (

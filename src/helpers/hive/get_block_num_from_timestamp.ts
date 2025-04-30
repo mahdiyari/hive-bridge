@@ -2,13 +2,16 @@ import { call } from 'hive-tx'
 
 const cache: Map<number, number> = new Map()
 
+// Changing these values might result in double unwrapping
+// Because the hive transaction parameters might change
+// Don't chnage the following 3 unless understood how it works
 const knownTimestamp = new Date('2025-04-09T14:19:36.000Z').getTime()
 const knownBlock = 94878350
-const errorMargin = 12 * 60 * 60 * 1000
+const errorMargin = 15 * 60 * 1000
 
 /** Find/estimate a block produced at near certain timestamp
- * We try to be deterministic with a margin of error of 12 hours
- * Error under 24 hours would be acceptable because max transaction expiration is 24 hours
+ * We try to be deterministic with a margin of error of 15 minutes
+ * Error under 1 hour would be acceptable because max transaction expiration is 1 hours
  * We need deterministic results for generating deterministic transactions across the network
  */
 export const getBlockNumFromTimestamp = async (timestamp: number) => {
