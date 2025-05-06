@@ -35,7 +35,8 @@ days.
 
 The ETH contract has a function that lets users unwrap their WHIVE. The
 operators will watch the ETH network and transfer HIVE/HBD to the users' Hive
-account upon successful burn of the WHIVE/WHBD tokens by the smart contract.
+account upon successful burn of the WHIVE/WHBD tokens by the smart contract
+(after 12 confirmations).
 
 ### P2P Messages
 
