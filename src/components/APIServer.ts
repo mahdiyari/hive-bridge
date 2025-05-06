@@ -5,12 +5,6 @@ import { pendingUnwraps } from './PendingUnwraps.ts'
 import { ethers } from 'ethers'
 
 const router = new Router()
-// router.get('/status', (context) => {
-// 	context.response.body = {
-// 		status: 'OK',
-// 	}
-// })
-
 router.get('/pending-hive-wraps', (context) => {
 	context.response.body = Object.fromEntries(pendingWraps.getAllPendingWraps())
 })
