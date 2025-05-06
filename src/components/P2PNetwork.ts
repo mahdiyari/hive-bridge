@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto'
 import * as uuid from '@std/uuid'
 import { messageChecksum } from '../helpers/p2p/message_checksum.ts'
 import { getMyIp } from '../helpers/general/get_my_ip.ts'
-import { checkPeerStatus } from '../helpers/p2p/check_peer_status.ts'
 import { messageHash } from '../helpers/p2p/message_hash.ts'
 import { isIPv4, isIPv6 } from 'node:net'
 import {
@@ -13,20 +12,22 @@ import {
 	HelloAckMessage,
 	HelloMessage,
 	Message,
-	Peer,
 	PeerMessageEvent,
 } from '../helpers/p2p/types.ts'
-import { p2pMessages, pendingWraps } from './PendingWraps.ts'
+import { pendingWraps } from './PendingWraps.ts'
 import { pendingUnwraps } from './PendingUnwraps.ts'
 import { bytesToHex } from '@noble/hashes/utils'
 import { signHeartbeat, validateHeartbeat } from '../helpers/p2p/heartbeat.ts'
 import { PrivateKey } from 'hive-tx'
+import { peers } from './Peers.ts'
+import { operators } from './Operators.ts'
+import { sleep } from '../helpers/general/sleep.ts'
 // import { generate } from 'selfsigned'
 
 export class P2PNetwork {
-	public peers: Map<string, Peer> = new Map()
 	private knownPeers: string[] = []
-	private connectionLimits = 10
+	// Will have double this number of peers connected (50% public + 50% private)
+	private maxPeers = 5
 	private messageRateLimit = 10 // per second
 	private messagesInLastSecond: Map<string, number> = new Map()
 	private port: number
@@ -36,18 +37,23 @@ export class P2PNetwork {
 	private myIP: string = 'none'
 	private event = new EventTarget()
 
-	constructor(knownPeers: string[], port?: number) {
-		this.knownPeers = knownPeers
-		this.port = port || Number(Deno.env.get('P2P_PORT')) || 3018
+	constructor(knownPeers?: string[], port?: number) {
+		this.knownPeers = Deno.env.get('PEERS')?.split(',') || []
+		this.port = Number(Deno.env.get('P2P_PORT')) || 3018
 		this.myId = randomUUID()
 		this.startServer().then(() => {
-			this.discoverPeers()
+			this.connectToKnownPeers()
+			this.handlePeerList()
+			this.initiateHeartbeat()
 		})
 		// Use this to rate limit messages received
 		setInterval(() => {
 			this.messagesInLastSecond.clear()
 		}, 1_000)
-		this.initiateHeartbeat()
+
+		setInterval(() => {
+			this.checkPeers()
+		}, 10_000)
 	}
 
 	/** Receive messages from the P2P network */
@@ -58,10 +64,15 @@ export class P2PNetwork {
 		})
 	}
 
-	/** Prepare and send the message to all peers */
-	public sendMessage(message: Message) {
-		for (const [_id, peer] of this.peers) {
-			this.wsSend(peer.ws, message)
+	/** Prepare and send the message to all peers except the exception -
+	 * exception: The peer who originally sent this message to us -
+	 * We don't want to send it back there again
+	 */
+	public sendMessage(message: Message, exception?: string) {
+		for (const peer of peers.getAllPeers()) {
+			if (peer.id !== exception) {
+				this.wsSend(peer.ws, message)
+			}
 		}
 	}
 
@@ -166,21 +177,24 @@ export class P2PNetwork {
 			}
 		}, 5_000)
 
-		ws.onmessage = async (event) => {
+		ws.onmessage = (event) => {
 			try {
 				const message: FullHelloMessage = JSON.parse(event.data.toString())
 				// Verify message integrity
 				if (!messageChecksum(message)) {
-					ws.close()
-					return
+					return ws.close()
 				}
 				// If not handshaked and the first message is not hello, close
 				if (!successHandshake && message.type !== 'HELLO') {
-					ws.close()
-					return
+					return ws.close()
 				}
 				// First message must be type HELLO
 				if (message.type === 'HELLO') {
+					// Experimental: Don't accept connections if we are at the peers limit
+					// Might want to send list of our peers so they can connect instead?
+					if (peers.getAllPeers().length >= this.maxPeers * 2) {
+						return ws.close()
+					}
 					// Already handshaked?
 					// Although this handler shouldn't receive this type of call
 					// because we re-assign the onmessage after handshake
@@ -191,38 +205,23 @@ export class P2PNetwork {
 								peerId: this.myId,
 							},
 						}
-						this.wsSend(ws, ackMsg)
-						return
+						return this.wsSend(ws, ackMsg)
 					}
 					// Require ip address in incoming handshake
 					if (!message.data?.address) {
-						ws.close()
-						return
+						return ws.close()
 					}
 					// Require valid uuid in incoming handshake
 					const remoteId = message.data.peerId
 					if (!uuid.validate(remoteId)) {
-						ws.close()
-						return
+						return ws.close()
 					}
 					// Don't connect to yourself
 					if (remoteId === this.myId) {
-						ws.close()
-						return
+						return ws.close()
 					}
-					// Detect duplicate peers
-					if (this.peers.has(remoteId)) {
-						ws.close()
-						return
-					}
-					// Check the public accessibility of the target peer
-					const validAddress = await checkPeerStatus(message.data.address)
-					const peer: Peer = {
-						id: remoteId,
-						ws,
-						address: validAddress ? message.data.address : 'none',
-					}
-					this.addPeer(peer)
+					// Validate and add new peer
+					peers.addPeer(remoteId, ws, message.data.address, 'none')
 					const ackMsg: HelloAckMessage = {
 						type: 'HELLO_ACK',
 						data: {
@@ -240,11 +239,11 @@ export class P2PNetwork {
 						)
 					}
 					ws.onclose = () => {
-						this.removePeer(peer)
+						peers.removePeer(remoteId)
 					}
 					ws.onerror = () => {
 						console.error(`WebSocket error:`, remoteId)
-						this.removePeer(peer)
+						peers.removePeer(remoteId)
 					}
 				} else {
 					ws.close()
@@ -257,25 +256,19 @@ export class P2PNetwork {
 	}
 
 	/** Add timestamp and hash the message before sending to ws */
-	private wsSend = (ws: WebSocket, msg: object) => {
+	private wsSend = (ws: WebSocket, msg: Message) => {
 		if (ws.readyState === WebSocket.OPEN) {
 			const timestamp = Date.now()
 			const hash = messageHash(JSON.stringify({ ...msg, timestamp }))
-			ws.send(JSON.stringify({ ...msg, timestamp, hash }))
+			const fullMessage = { ...msg, timestamp, hash }
+			// Add message to the seen list
+			// so we don't broadcast it again when received from other peers
+			peers.addMessage(hash, fullMessage)
+			ws.send(JSON.stringify(fullMessage))
 		} else {
 			console.log(`ws connection is not open... removing the peer.`)
 			ws.close()
 		}
-	}
-
-	private addPeer = (peer: Peer) => {
-		this.peers.set(peer.id, peer)
-		console.log(`Peer added: ${peer.id}`)
-	}
-
-	private removePeer = (peer: Peer) => {
-		this.peers.delete(peer.id)
-		console.log(`Peer removed: ${peer.id}`)
 	}
 
 	/** Regular messages after the initial handshake will be handled here */
@@ -294,10 +287,11 @@ export class P2PNetwork {
 				ws.close()
 				return
 			}
-			if (p2pMessages.has(parsedMessage.hash)) {
+			// If we have already seen this message, ignore it
+			if (peers.messageSeen(parsedMessage.hash)) {
 				return
 			}
-			p2pMessages.set(parsedMessage.hash, parsedMessage)
+			peers.addMessage(parsedMessage.hash, parsedMessage)
 			const messageEvent = new CustomEvent('peerMessage', {
 				detail: <EventDetail> {
 					type: 'peerMessage',
@@ -306,110 +300,103 @@ export class P2PNetwork {
 				},
 			})
 			this.event.dispatchEvent(messageEvent)
-			this.broadcast(message, peerId)
+			// Repeat to other peers if not personal communication
+			if (
+				parsedMessage.type !== 'HELLO' &&
+				parsedMessage.type !== 'HELLO_ACK' &&
+				parsedMessage.type !== 'REQUEST_PEERS' &&
+				parsedMessage.type !== 'PEER_LIST'
+			) {
+				this.sendMessage(parsedMessage, peerId)
+			}
 		} catch {
 			// Remove the peer on malformed message
 			ws.close()
 		}
 	}
 
-	/** Repeat message to other peers */
-	private broadcast(message: string, senderId: string) {
-		for (const [id, peer] of this.peers) {
-			if (id !== senderId) {
-				try {
-					peer.ws.send(message)
-				} catch (error) {
-					console.error(`Error sending message to peer ${id}: ${error}`)
-				}
-			}
+	/** Add peers that are in knownPeers list */
+	private connectToKnownPeers() {
+		for (const peerAddress of this.knownPeers) {
+			this.connectToPeer(peerAddress)
 		}
 	}
 
-	/** Add peers that are in knownPeers list */
-	private discoverPeers() {
-		for (const peerAddress of this.knownPeers) {
-			try {
-				let successHandshake = false
-				const ws = new WebSocket(`ws://${peerAddress}`)
-
-				// Send HELLO onOpen
-				ws.onopen = () => {
-					// Close the connection after 5s if not handshaked
-					setTimeout(() => {
-						if (!successHandshake) {
-							ws.close()
-						}
-					}, 5_000)
-					const helloMsg: HelloMessage = {
-						type: 'HELLO',
-						data: {
-							peerId: this.myId,
-							address: `${this.myIP}:${this.port}`,
-						},
-					}
-					this.wsSend(ws, helloMsg)
-				}
-
-				ws.onmessage = (event) => {
-					try {
-						const message: FullHelloAckMessage = JSON.parse(
-							event.data.toString(),
-						)
-						const checksum = messageChecksum(message)
-						if (!checksum) {
-							ws.close()
-							return
-						}
-						if (message.type !== 'HELLO_ACK') {
-							ws.close()
-							return
-						}
-						if (!uuid.validate(message.data.peerId)) {
-							ws.close()
-							return
-						}
-						// Duplicate peer
-						if (this.peers.has(message.data.peerId)) {
-							ws.close()
-							return
-						}
-						const peer = {
-							address: peerAddress,
-							id: message.data.peerId,
-							ws,
-						}
-						this.addPeer(peer)
-						successHandshake = true
-						// Re-assign the onmessage
-						ws.onmessage = async (event2) => {
-							await this.handleRegularMessage(
-								event2.data.toString(),
-								message.data.peerId,
-								ws,
-							)
-						}
-						ws.onclose = () => {
-							this.removePeer(peer)
-						}
-						ws.onerror = () => {
-							this.removePeer(peer)
-						}
-					} catch {
+	/** peerAddress without ws:// */
+	private connectToPeer(peerAddress: string) {
+		try {
+			let successHandshake = false
+			const ws = new WebSocket(`ws://${peerAddress}`)
+			// Send HELLO onOpen
+			ws.onopen = () => {
+				// Close the connection after 5s if not handshaked
+				setTimeout(() => {
+					if (!successHandshake) {
 						ws.close()
 					}
+				}, 5_000)
+				const helloMsg: HelloMessage = {
+					type: 'HELLO',
+					data: {
+						peerId: this.myId,
+						address: `${this.myIP}:${this.port}`,
+					},
 				}
-
-				ws.onerror = () => {
-					console.error(
-						`Error connecting to known peer ${peerAddress}`,
+				this.wsSend(ws, helloMsg)
+			}
+			ws.onmessage = (event) => {
+				try {
+					const message: FullHelloAckMessage = JSON.parse(
+						event.data.toString(),
 					)
+					const checksum = messageChecksum(message)
+					if (!checksum) {
+						ws.close()
+						return
+					}
+					if (message.type !== 'HELLO_ACK') {
+						ws.close()
+						return
+					}
+					if (!uuid.validate(message.data.peerId)) {
+						ws.close()
+						return
+					}
+					// Validate and add new peer
+					peers.addPeer(
+						message.data.peerId,
+						ws,
+						peerAddress,
+						'none',
+					)
+					successHandshake = true
+					// Re-assign the onmessage
+					ws.onmessage = (event2) => {
+						this.handleRegularMessage(
+							event2.data.toString(),
+							message.data.peerId,
+							ws,
+						)
+					}
+					ws.onclose = () => {
+						peers.removePeer(message.data.peerId)
+					}
+					ws.onerror = () => {
+						peers.removePeer(message.data.peerId)
+					}
+				} catch {
+					ws.close()
 				}
-			} catch {
+			}
+			ws.onerror = () => {
 				console.error(
-					`Failed to connect to known peer ${peerAddress}`,
+					`Error connecting to known peer ${peerAddress}`,
 				)
 			}
+		} catch {
+			console.error(
+				`Failed to connect to known peer ${peerAddress}`,
+			)
 		}
 	}
 
@@ -435,6 +422,8 @@ export class P2PNetwork {
 					signature,
 				},
 			})
+			// Set our own operator's lastSeen
+			operators.setOperatorLastSeen(username, Date.now())
 		}, 90_000)
 	}
 
@@ -445,38 +434,101 @@ export class P2PNetwork {
 			if (msg.type === 'HEARTBEAT') {
 				const valid = validateHeartbeat(msg.data)
 				if (valid) {
-					// update peers or smth
+					// if heartbeat sender is the operator, set the operator name for that peer
+					peers.receivedHeartbeat(msg.data.peerId, msg.data.operator)
+					operators.setOperatorLastSeen(msg.data.operator, Date.now())
 				}
+				// Peer limit etc
+				// TODO
 			}
 		})
 	}
 
-	private sendPeerList(peerId: string) {
-		const peer = this.peers.get(peerId)
-		if (peer) {
-			if (peer.ws.readyState === WebSocket.OPEN) {
-				const peersList = Array.from(this.peers.keys())
-				peer.ws.send(JSON.stringify({ type: 'peerList', peers: peersList }))
-			} else {
-				console.warn(
-					`WebSocket for peer ${peerId} is not open, skipping peer list send.`,
-				)
-			}
-		} else {
-			console.warn(`Peer ${peerId} does not exist, skipping peer list send.`)
+	private checkPeers() {
+		const publicPeers = peers.getPublicPeers()
+		const privatePeers = peers.getPrivatePeers()
+		// Randomly remove peers if connected to more than maxPeers
+		if (privatePeers.length > this.maxPeers) {
+			const peersToRemove = privatePeers.length - this.maxPeers
+			const rand = getRandomUniqueNumbers(0, privatePeers.length, peersToRemove)
+			rand.forEach((val) => {
+				peers.removePeer(privatePeers[val].id)
+			})
+		}
+		if (publicPeers.length > this.maxPeers) {
+			const peersToRemove = publicPeers.length - this.maxPeers
+			const rand = getRandomUniqueNumbers(0, publicPeers.length, peersToRemove)
+			rand.forEach((val) => {
+				peers.removePeer(publicPeers[val].id)
+			})
+		} else if (publicPeers.length < this.maxPeers) {
+			// Discover and connect to more peers if possible
+			this.sendMessage({ type: 'REQUEST_PEERS' })
 		}
 	}
-	private handlePeerList(peers: string[], senderId: string) {
-		for (const peerId of peers) {
-			if (
-				!this.peers.has(peerId) &&
-				peerId !==
-					[...this.peers.keys()].find((id) =>
-						this.peers.get(id)?.ws === this.peers.get(senderId)?.ws
-					)
-			) {
-				console.log(`New peer discovered from ${senderId}: ${peerId}`)
+
+	private handlePeerList() {
+		this.event.addEventListener('peerMessage', async (e) => {
+			const pe = e as PeerMessageEvent
+			const msg = pe.detail.data
+			if (msg.type === 'PEER_LIST') {
+				for (const val of msg.data.message.peers) {
+					const pubPeers = peers.getPublicPeers()
+					if (pubPeers.length >= this.maxPeers) {
+						return
+					}
+					let includes = false
+					for (let i = 0; i < pubPeers.length; i++) {
+						if (pubPeers[i].address === val) {
+							includes = true
+							break
+						}
+					}
+					if (!includes) {
+						console.log('Connecting to discovered peer:', val)
+						this.connectToPeer(val)
+						// Sleep a bit before connecting to new peers
+						// Seems like a good idea
+						await sleep(500)
+					}
+				}
+			} else if (msg.type === 'REQUEST_PEERS') {
+				const pubPeers = peers.getPublicPeers()
+				if (pubPeers.length === 0) {
+					return
+				}
+				const addresses: string[] = []
+				pubPeers.forEach((val) => {
+					addresses.push(val.address)
+				})
+				const ws = peers.getWS(pe.detail.sender)
+				if (!ws) {
+					return
+				}
+				this.wsSend(ws, {
+					type: 'PEER_LIST',
+					data: {
+						message: {
+							peers: addresses,
+						},
+					},
+				})
 			}
-		}
+		})
 	}
+}
+
+// AI generated function - seems to work fine
+/** Select a certain amount of unique numbers randomly from a range */
+function getRandomUniqueNumbers(
+	start: number,
+	end: number,
+	count: number,
+): number[] {
+	const range = Array.from({ length: end - start + 1 }, (_, i) => i + start)
+	for (let i = range.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1))
+		;[range[i], range[j]] = [range[j], range[i]]
+	}
+	return range.slice(0, count)
 }
