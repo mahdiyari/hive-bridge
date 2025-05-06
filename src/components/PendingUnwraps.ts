@@ -1,7 +1,7 @@
 import { Signature } from 'hive-tx'
 import { Transaction } from 'hive-tx'
-import { operatorKeys } from '../helpers/general/get_operators.ts'
 import { call } from 'hive-tx'
+import { operators } from './Operators.ts'
 
 class PendingUnwraps {
 	private multisigTreshold = 1 // We should get this from the API
@@ -64,7 +64,7 @@ class PendingUnwraps {
 			if (trx) {
 				const sig = Signature.from(signature)
 				const recoveredKey = sig.getPublicKey(trx.digest().digest).toString()
-				const operatorKey = operatorKeys.get(operator)
+				const operatorKey = operators.getOperatorKeys(operator)
 				if (!operatorKey) {
 					return
 				}
