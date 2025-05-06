@@ -1,7 +1,10 @@
 import { messageHash } from './message_hash.ts'
 import { FullMessage } from './types.ts'
 
-/** Verify the hash of the message and verify the message is not older than 5 seconds */
+// Arbitary number which the messages are still considered valid
+const MAX_VALID_TIME = 8_000 // 8s
+
+/** Verify the hash of the message and verify the message is not older than 8 seconds */
 export const messageChecksum = (
 	message: string | FullMessage,
 ) => {
@@ -13,7 +16,10 @@ export const messageChecksum = (
 		) {
 			return false
 		}
-		if (isNaN(jsonMsg.timestamp) || Date.now() - jsonMsg.timestamp > 5000) {
+		if (
+			isNaN(jsonMsg.timestamp) ||
+			Date.now() - jsonMsg.timestamp > MAX_VALID_TIME
+		) {
 			return false
 		}
 		const hash = jsonMsg.hash
