@@ -20,7 +20,6 @@ export class HiveService {
 		this.nodes = nodes.split(',')
 		config.node = this.nodes
 		this.processHistory()
-		// this.startListening()
 	}
 
 	/** Triggers on transfers to the bridge account with valid memo */
