@@ -1,7 +1,7 @@
 import { PrivateKey } from 'hive-tx'
 import { sha256 } from '@noble/hashes/sha256'
 import { Signature } from 'hive-tx'
-import { operatorKeys, operators } from '../general/get_operators.ts'
+import { operators } from '../../components/Operators.ts'
 
 interface Heartbeat {
 	operator: string
@@ -24,7 +24,7 @@ export const validateHeartbeat = (msg: SignedHeartbeat) => {
 		if (Date.now() - msg.timestamp > 10_000) {
 			return false
 		}
-		if (!operators.includes(msg.operator)) {
+		if (!operators.getOperators().includes(msg.operator)) {
 			return false
 		}
 		const signature = Signature.from(msg.signature)
@@ -35,7 +35,7 @@ export const validateHeartbeat = (msg: SignedHeartbeat) => {
 		}
 		const hash = sha256(JSON.stringify(rawMsg))
 		const recoveredKey = signature.getPublicKey(hash).toString()
-		const opKeys = operatorKeys.get(msg.operator)
+		const opKeys = operators.getOperatorKeys(msg.operator)
 		opKeys?.forEach((value) => {
 			if (value === recoveredKey) {
 				return true
