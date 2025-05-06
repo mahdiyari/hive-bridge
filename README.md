@@ -1,2 +1,3 @@
 # hive-bridge
-secret bridge
+
+Hive bridge
