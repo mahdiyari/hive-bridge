@@ -2,6 +2,7 @@ import { ethers } from 'ethers'
 import { hiveContractABI } from '../helpers/eth/hive_contract_abi.ts'
 import { UnwrapEvent } from '../helpers/eth/types.ts'
 import { pendingWraps } from './PendingWraps.ts'
+import { withTimeout } from '../helpers/general/with_timeout.ts'
 
 export class ETHService {
 	private CONFIRMATIONS = 12
@@ -24,14 +25,19 @@ export class ETHService {
 		this.contractAddress = contractAddress
 		this.ethNode = <string> Deno.env.get('ETH_NODE')
 		this.ethNode2 = Deno.env.get('ETH_NODE2')
-		this.provider = new ethers.JsonRpcProvider(this.ethNode)
+		const network = new ethers.Network('Sepolia', 11155111)
+		this.provider = new ethers.JsonRpcProvider(this.ethNode, network, {
+			staticNetwork: network,
+		})
 		this.contract = new ethers.Contract(
 			this.contractAddress,
 			hiveContractABI,
 			this.provider,
 		)
 		if (this.ethNode2) {
-			this.backupProvider = new ethers.JsonRpcProvider(this.ethNode2)
+			this.backupProvider = new ethers.JsonRpcProvider(this.ethNode2, network, {
+				staticNetwork: network,
+			})
 			this.backupContract = new ethers.Contract(
 				this.contractAddress,
 				hiveContractABI,
@@ -56,7 +62,10 @@ export class ETHService {
 		contract = this.contract,
 	): Promise<boolean> {
 		try {
-			const result = await contract.hasMinted(address, blockNum)
+			const result = await withTimeout(
+				contract.hasMinted(address, blockNum),
+				5000,
+			)
 			return result
 		} catch (e) {
 			// on error call the backup node if exists
@@ -76,10 +85,13 @@ export class ETHService {
 		}
 		if (safeBlock > this.lastPolledBlock) {
 			const filter = this.contract.filters.Unwrap()
-			const result = await this.contract.queryFilter(
-				filter,
-				this.lastPolledBlock + 1,
-				safeBlock,
+			const result = await withTimeout(
+				this.contract.queryFilter(
+					filter,
+					this.lastPolledBlock + 1,
+					safeBlock,
+				),
+				6000,
 			)
 			result.forEach(async (res) => {
 				const eventLog = <ethers.EventLog> res
@@ -100,14 +112,14 @@ export class ETHService {
 		}
 	}
 
-	private async startListening() {
-		setInterval(() => {
+	private startListening() {
+		setInterval(async () => {
 			try {
-				this.checkPendingWraps()
-				this.getUnwrapEvents(this.provider)
+				await this.checkPendingWraps()
+				await this.getUnwrapEvents(this.provider)
 			} catch {
 				if (this.backupProvider) {
-					this.getUnwrapEvents(this.backupProvider)
+					await this.getUnwrapEvents(this.backupProvider)
 				}
 			}
 		}, this.POLLING_INTERVAL)
