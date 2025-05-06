@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "start": "",
+    "start": "deno run --env-file --allow-env --allow-net --allow-read --allow-ffi src/main.ts",
     "dev": "deno run --watch --env-file --allow-env --allow-net --allow-read --allow-ffi src/main.ts"
   },
   "imports": {
