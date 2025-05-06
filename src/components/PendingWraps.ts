@@ -1,8 +1,5 @@
 import { ethers } from 'ethers'
-import { FullMessage } from '../helpers/p2p/types.ts'
-import { operatorAddresses } from '../helpers/general/get_operators.ts'
-
-export const p2pMessages: Map<string, FullMessage> = new Map()
+import { operators } from './Operators.ts'
 
 class PendingWraps {
 	private pendingWraps: Map<
@@ -88,7 +85,7 @@ class PendingWraps {
 				return
 			}
 			const recoveredAddress = ethers.recoverAddress(msgHash, signature)
-			const address = operatorAddresses.get(operator)
+			const address = operators.getOperatorAddresses(operator)
 			if (!address) {
 				return
 			}
