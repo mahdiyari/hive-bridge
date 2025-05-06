@@ -21,7 +21,7 @@ const HIVE_ETH_CONTRACT = '0x216D8Ff7F1047FeEea2104D8051Ae4f2C2BA0578'
 const HBD_ETH_CONTRACT = '0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5'
 
 // Update this upon contract change while testing
-const HIVE_GENESIS = 92050254
+const HIVE_GENESIS = 95507645
 
 const TREASURY = Deno.env.get('TREASURY')
 if (!TREASURY) {
