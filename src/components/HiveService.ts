@@ -19,6 +19,8 @@ export class HiveService {
 		const nodes = Deno.env.get('HIVE_NODES') || ''
 		this.nodes = nodes.split(',')
 		config.node = this.nodes
+		config.chain_id =
+			'4200000000000000000000000000000000000000000000000000000000000000'
 		this.processHistory()
 	}
 
