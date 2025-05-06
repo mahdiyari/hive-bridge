@@ -11,7 +11,7 @@
     "@std/uuid": "jsr:@std/uuid@^1.0.5",
     "ethereumjs-util": "npm:ethereumjs-util@^7.1.5",
     "ethers": "npm:ethers@^6.13.5",
-    "hive-tx": "npm:hive-tx@^6.1.1",
+    "hive-tx": "npm:hive-tx@^6.1.3",
     "selfsigned": "npm:selfsigned@^2.4.1"
   },
   "fmt": {
