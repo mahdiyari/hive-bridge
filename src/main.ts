@@ -9,6 +9,13 @@ import { pendingUnwraps } from './components/PendingUnwraps.ts'
 import { hashWrapMessage } from './helpers/eth/hashWrapMessage.ts'
 import { signKeccakHash } from './helpers/eth/signKeccakHash.ts'
 
+// TODO:
+// We might want to send signatures out periodically if there is a pending wrap/unwrap
+// P2P limit etc might need tuning
+// ETH connections "should" be fine but there was a node:http error without a fucking trace to where that error happened so watchout for that
+// We are still trusting Hive API nodes (the most likely attack vector I think)
+// Proxy ETH contract testing but should be simple
+
 const HIVE_ETH_CONTRACT = '0x216D8Ff7F1047FeEea2104D8051Ae4f2C2BA0578'
 // const HIVE_ETH_CONTRACT = '0xdbDa07F0BcD6E241a7B892B6B1fE31488c13A5df'
 const HBD_ETH_CONTRACT = '0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5'
@@ -148,7 +155,8 @@ const main = () => {
 		}
 	}
 
-	app.listen({ port: 8000 })
-	console.log('API server listening on 8000')
+	const port = Number(Deno.env.get('API_PORT')) || 8000
+	app.listen({ port })
+	console.log(`API server listening on ${port}`)
 }
 main()
