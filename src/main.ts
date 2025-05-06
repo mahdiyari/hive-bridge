@@ -18,7 +18,7 @@ import { signKeccakHash } from './helpers/eth/signKeccakHash.ts'
 
 const HIVE_ETH_CONTRACT = '0x216D8Ff7F1047FeEea2104D8051Ae4f2C2BA0578'
 // const HIVE_ETH_CONTRACT = '0xdbDa07F0BcD6E241a7B892B6B1fE31488c13A5df'
-const HBD_ETH_CONTRACT = '0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5'
+const HBD_ETH_CONTRACT = '0x180099e000B20AC13b91A7863a8210272B411f82'
 
 // Update this upon contract change while testing
 const HIVE_GENESIS = 95507645
@@ -120,14 +120,14 @@ const main = () => {
 	whiveService.onUnwrap((res) => {
 		// We received an unwrap event
 		// i.e. someone has burned their WHIVE
-		const amount = `${(Number(res.amount) / 1000).toFixed(3)} HIVE`
+		const amount = `${(Number(res.amount) / 1000).toFixed(3)} HIVE` // HIVE
 		handleUnwrap(res.trx, res.username, amount, res.blockTime)
 	})
 
 	whbdService.onUnwrap((res) => {
 		// We received an unwrap event
 		// i.e. someone has burned their WHBD
-		const amount = `${(Number(res.amount) / 1000).toFixed(3)} HBD`
+		const amount = `${(Number(res.amount) / 1000).toFixed(3)} HBD` // HBD
 		handleUnwrap(res.trx, res.username, amount, res.blockTime)
 	})
 
