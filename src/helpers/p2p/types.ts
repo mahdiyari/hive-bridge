@@ -2,6 +2,7 @@ export interface Peer {
 	id: string
 	ws: WebSocket
 	address: string | 'none'
+	operator: string | 'none'
 }
 
 export interface HelloMessage {
@@ -56,6 +57,19 @@ export interface HiveSignatureMessage {
 	}
 }
 
+export interface PeerListMessage {
+	type: 'PEER_LIST'
+	data: {
+		message: {
+			peers: string[]
+		}
+	}
+}
+
+export interface RequestPeersMessage {
+	type: 'REQUEST_PEERS'
+}
+
 export interface FullHelloMessage extends HelloMessage {
 	timestamp: number
 	hash: string
@@ -76,6 +90,14 @@ export interface FullHiveSignatureMessage extends HiveSignatureMessage {
 	timestamp: number
 	hash: string
 }
+export interface FullPeerListMessage extends PeerListMessage {
+	timestamp: number
+	hash: string
+}
+export interface FullRequestPeersMessage extends RequestPeersMessage {
+	timestamp: number
+	hash: string
+}
 
 export type Message =
 	| HelloMessage
@@ -83,6 +105,8 @@ export type Message =
 	| SignatureMessage
 	| HeartbeatMessage
 	| HiveSignatureMessage
+	| PeerListMessage
+	| RequestPeersMessage
 
 export type FullMessage =
 	| FullHelloMessage
@@ -90,6 +114,8 @@ export type FullMessage =
 	| FullSignatureMessage
 	| FullHeartbeatMessage
 	| FullHiveSignatureMessage
+	| FullPeerListMessage
+	| FullRequestPeersMessage
 
 // Create a custom event for redirecting the peer messages to the main app
 // All peers will dispatch this event onmessage
