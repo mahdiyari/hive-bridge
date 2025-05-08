@@ -119,7 +119,7 @@ export class ETHService {
 				await this.getUnwrapEvents(this.provider)
 			} catch {
 				if (this.backupProvider) {
-					await this.getUnwrapEvents(this.backupProvider)
+					this.getUnwrapEvents(this.backupProvider).catch(() => {})
 				}
 			}
 		}, this.POLLING_INTERVAL)
