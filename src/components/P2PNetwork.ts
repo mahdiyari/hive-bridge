@@ -415,6 +415,7 @@ export class P2PNetwork {
 				timestamp: Date.now(),
 			}
 			const signature = signHeartbeat(msg, PrivateKey.from(activeKey))
+			console.log('sent heartbeat')
 			this.sendMessage({
 				type: 'HEARTBEAT',
 				data: {
