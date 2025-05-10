@@ -291,6 +291,7 @@ export class P2PNetwork {
 			if (peers.messageSeen(parsedMessage.hash)) {
 				return
 			}
+			console.log(parsedMessage)
 			peers.addMessage(parsedMessage.hash, parsedMessage)
 			const messageEvent = new CustomEvent('peerMessage', {
 				detail: <EventDetail> {
@@ -310,6 +311,7 @@ export class P2PNetwork {
 				this.sendMessage(parsedMessage, peerId)
 			}
 		} catch {
+			console.warn('malformed message from', peerId)
 			// Remove the peer on malformed message
 			ws.close()
 		}
@@ -474,6 +476,10 @@ export class P2PNetwork {
 			const msg = pe.detail.data
 			if (msg.type === 'PEER_LIST') {
 				for (const val of msg.data.message.peers) {
+					// Don't connect to yourself
+					if (val === `${this.myIP}:${this.port}`) {
+						continue
+					}
 					const pubPeers = peers.getPublicPeers()
 					if (pubPeers.length >= this.maxPeers) {
 						return
