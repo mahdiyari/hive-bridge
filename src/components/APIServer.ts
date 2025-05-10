@@ -3,6 +3,8 @@ import { Router } from '@oak/oak/router'
 import { pendingWraps } from './PendingWraps.ts'
 import { pendingUnwraps } from './PendingUnwraps.ts'
 import { ethers } from 'ethers'
+import { peers } from './Peers.ts'
+import { operators } from './Operators.ts'
 
 const router = new Router()
 router.get('/pending-hive-wraps', (context) => {
@@ -22,6 +24,14 @@ router.get('/pending-hive-wraps/:usernameOrAddress', (ctx) => {
 
 router.get('/pending-hive-unwraps', (context) => {
 	context.response.body = Object.fromEntries(pendingUnwraps.getAllUnwraps())
+})
+
+router.get('/peers', (context) => {
+	context.response.body = peers.getAllPeers()
+})
+
+router.get('/operators', (context) => {
+	context.response.body = operators.getOperatorsStatus()
 })
 
 export const app = new Application()
