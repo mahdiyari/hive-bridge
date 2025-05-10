@@ -36,11 +36,14 @@ export const validateHeartbeat = (msg: SignedHeartbeat) => {
 		const hash = sha256(JSON.stringify(rawMsg))
 		const recoveredKey = signature.getPublicKey(hash).toString()
 		const opKeys = operators.getOperatorKeys(msg.operator)
-		opKeys?.forEach((value) => {
-			if (value === recoveredKey) {
+		if (!opKeys || opKeys.length === 0) {
+			return false
+		}
+		for (const key of opKeys) {
+			if (key === recoveredKey) {
 				return true
 			}
-		})
+		}
 		return false
 	} catch {
 		return false
