@@ -13,7 +13,7 @@ export const checkPeerStatus = (
 		fetch('http://' + address + '/status').then((res) => res.json()).then(
 			(res) => {
 				if (res.status === 'OK') {
-					resolve(false)
+					resolve(true)
 					return
 				}
 				resolve(false)
