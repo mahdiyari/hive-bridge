@@ -43,7 +43,7 @@ if (USERNAME && ACTIVE_KEY) {
 // HiveService to read Hive transactions
 // ETHService to read ETH transactions
 const main = () => {
-	const p2pNetwork = new P2PNetwork(knownPeers1, port1)
+	const p2pNetwork = new P2PNetwork()
 	const hiveService = new HiveService(HIVE_GENESIS)
 	const whiveService = new ETHService(HIVE_ETH_CONTRACT)
 	const whbdService = new ETHService(HBD_ETH_CONTRACT)
