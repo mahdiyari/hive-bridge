@@ -142,8 +142,7 @@ export class P2PNetwork {
 			handler: (request) => {
 				if (request.headers.get('upgrade') === 'websocket') {
 					const { socket, response } = Deno.upgradeWebSocket(request)
-					this.handleIncomingConnection(socket)
-					return response
+					return this.handleIncomingConnection(socket, response)
 				}
 				if (request.method === 'GET') {
 					// We use /status on the p2p port to detect if peer is publicly accessible
@@ -168,91 +167,74 @@ export class P2PNetwork {
 	}
 
 	/** Handles the incoming connection and handshake from peers */
-	private handleIncomingConnection(ws: WebSocket) {
-		let successHandshake = false
-		// timeout after 5 seconds
+	private handleIncomingConnection(ws: WebSocket, response: Response) {
+		let remoteId: string | undefined
+		// timeout after 5 seconds if not handshaked
 		setTimeout(() => {
-			if (!successHandshake) {
+			if (!remoteId) {
 				ws.close()
 			}
 		}, 5_000)
 
 		ws.onmessage = (event) => {
-			try {
-				const message: FullHelloMessage = JSON.parse(event.data.toString())
-				// Verify message integrity
-				if (!messageChecksum(message)) {
+			const message = this.parseMessage(event.data.toString())
+			if (!message) {
+				return ws.close()
+			}
+			// If not handshaked and the first message is not hello, close
+			if (!remoteId && message.type !== 'HELLO') {
+				return ws.close()
+			}
+			// First message must be type HELLO
+			if (!remoteId && message.type === 'HELLO') {
+				// Experimental: Don't accept connections if we are at the peers limit
+				// Might want to send list of our peers so they can connect instead?
+				if (peers.getAllPeers().length >= this.maxPeers * 2) {
+					// TODO: send peer list perhaps
 					return ws.close()
 				}
-				// If not handshaked and the first message is not hello, close
-				if (!successHandshake && message.type !== 'HELLO') {
+				// Require ip address in incoming handshake
+				if (!message.data?.address) {
 					return ws.close()
 				}
-				// First message must be type HELLO
-				if (message.type === 'HELLO') {
-					// Experimental: Don't accept connections if we are at the peers limit
-					// Might want to send list of our peers so they can connect instead?
-					if (peers.getAllPeers().length >= this.maxPeers * 2) {
-						return ws.close()
-					}
-					// Already handshaked?
-					// Although this handler shouldn't receive this type of call
-					// because we re-assign the onmessage after handshake
-					if (successHandshake) {
-						const ackMsg: HelloAckMessage = {
-							type: 'HELLO_ACK',
-							data: {
-								peerId: this.myId,
-							},
-						}
-						return this.wsSend(ws, ackMsg)
-					}
-					// Require ip address in incoming handshake
-					if (!message.data?.address) {
-						return ws.close()
-					}
-					// Require valid uuid in incoming handshake
-					const remoteId = message.data.peerId
-					if (!uuid.validate(remoteId)) {
-						return ws.close()
-					}
-					// Don't connect to yourself
-					if (remoteId === this.myId) {
-						return ws.close()
-					}
-					// Validate and add new peer
-					peers.addPeer(remoteId, ws, message.data.address, 'none')
-					const ackMsg: HelloAckMessage = {
-						type: 'HELLO_ACK',
-						data: {
-							peerId: this.myId,
-						},
-					}
-					this.wsSend(ws, ackMsg)
-					successHandshake = true
-					// Re-assign the onmessage to another handler
-					ws.onmessage = (event2) => {
-						this.handleRegularMessage(
-							event2.data.toString(),
-							remoteId,
-							ws,
-						)
-					}
-					ws.onclose = () => {
-						peers.removePeer(remoteId)
-					}
-					ws.onerror = () => {
-						console.error(`WebSocket error:`, remoteId)
-						peers.removePeer(remoteId)
-					}
-				} else {
-					ws.close()
+				// Require valid uuid in incoming handshake
+				remoteId = message.data.peerId
+				if (!uuid.validate(remoteId)) {
+					return ws.close()
 				}
-			} catch {
-				// Close the connection on malformed message
-				ws.close()
+				// Don't connect to yourself
+				if (remoteId === this.myId) {
+					return ws.close()
+				}
+				// Validate and add new peer
+				peers.addPeer(remoteId, ws, message.data.address, 'none')
+				const ackMsg: HelloAckMessage = {
+					type: 'HELLO_ACK',
+					data: {
+						peerId: this.myId,
+					},
+				}
+				this.wsSend(ws, ackMsg)
+			} else if (remoteId && peers.getWS(remoteId)) {
+				return this.handleRegularMessage(
+					message,
+					remoteId,
+					ws,
+				)
+			} else {
+				return ws.close()
 			}
 		}
+		ws.onclose = () => {
+			if (remoteId && peers.getWS(remoteId)) {
+				peers.removePeer(remoteId)
+			}
+		}
+		ws.onerror = () => {
+			console.error(`WebSocket error:`, remoteId)
+			// onclose will be called after this
+		}
+		return response
 	}
 
 	/** Add timestamp and hash the message before sending to ws */
@@ -272,7 +254,11 @@ export class P2PNetwork {
 	}
 
 	/** Regular messages after the initial handshake will be handled here */
-	private handleRegularMessage(message: string, peerId: string, ws: WebSocket) {
+	private handleRegularMessage(
+		message: FullMessage,
+		peerId: string,
+		ws: WebSocket,
+	) {
 		const recentMessageCount = this.messagesInLastSecond.get(peerId) || 0
 		if (recentMessageCount > this.messageRateLimit) {
 			console.warn(`Rate limit exceeded for peer: ${peerId}`)
@@ -281,38 +267,32 @@ export class P2PNetwork {
 		this.messagesInLastSecond.set(peerId, recentMessageCount + 1)
 
 		try {
-			const parsedMessage: FullMessage = JSON.parse(message)
-			const checksum = messageChecksum(parsedMessage)
-			if (!checksum) {
-				ws.close()
-				return
-			}
 			// If we have already seen this message, ignore it
-			if (peers.messageSeen(parsedMessage.hash)) {
+			if (peers.messageSeen(message.hash)) {
+				console.warn('aleady seen this message', message)
 				return
 			}
-			console.log(parsedMessage)
-			peers.addMessage(parsedMessage.hash, parsedMessage)
+			peers.addMessage(message.hash, message)
 			const messageEvent = new CustomEvent('peerMessage', {
 				detail: <EventDetail> {
 					type: 'peerMessage',
-					data: parsedMessage,
+					data: message,
 					sender: peerId,
 				},
 			})
 			this.event.dispatchEvent(messageEvent)
 			// Repeat to other peers if not personal communication
 			if (
-				parsedMessage.type !== 'HELLO' &&
-				parsedMessage.type !== 'HELLO_ACK' &&
-				parsedMessage.type !== 'REQUEST_PEERS' &&
-				parsedMessage.type !== 'PEER_LIST'
+				message.type !== 'HELLO' &&
+				message.type !== 'HELLO_ACK' &&
+				message.type !== 'REQUEST_PEERS' &&
+				message.type !== 'PEER_LIST'
 			) {
-				this.sendMessage(parsedMessage, peerId)
+				this.sendMessage(message, peerId)
 			}
 		} catch {
 			console.warn('malformed message from', peerId)
-			// Remove the peer on malformed message
+			// Remove the peer on malformed message?
 			ws.close()
 		}
 	}
@@ -327,13 +307,13 @@ export class P2PNetwork {
 	/** peerAddress without ws:// */
 	private connectToPeer(peerAddress: string) {
 		try {
-			let successHandshake = false
+			let remoteId: string | undefined
 			const ws = new WebSocket(`ws://${peerAddress}`)
 			// Send HELLO onOpen
 			ws.onopen = () => {
 				// Close the connection after 5s if not handshaked
 				setTimeout(() => {
-					if (!successHandshake) {
+					if (!remoteId) {
 						ws.close()
 					}
 				}, 5_000)
@@ -347,59 +327,67 @@ export class P2PNetwork {
 				this.wsSend(ws, helloMsg)
 			}
 			ws.onmessage = (event) => {
-				try {
-					const message: FullHelloAckMessage = JSON.parse(
-						event.data.toString(),
-					)
-					const checksum = messageChecksum(message)
-					if (!checksum) {
-						ws.close()
-						return
-					}
-					if (message.type !== 'HELLO_ACK') {
-						ws.close()
-						return
-					}
+				const message = this.parseMessage(event.data.toString())
+				if (!message) {
+					return ws.close()
+				}
+				// Any message other than HELLO_ACK is invalid before handshake
+				if (!remoteId && message.type !== 'HELLO_ACK') {
+					return ws.close()
+				}
+				if (!remoteId && message.type === 'HELLO_ACK') {
 					if (!uuid.validate(message.data.peerId)) {
 						ws.close()
 						return
 					}
+					remoteId = message.data.peerId
 					// Validate and add new peer
 					peers.addPeer(
-						message.data.peerId,
+						remoteId,
 						ws,
 						peerAddress,
 						'none',
 					)
-					successHandshake = true
-					// Re-assign the onmessage
-					ws.onmessage = (event2) => {
-						this.handleRegularMessage(
-							event2.data.toString(),
-							message.data.peerId,
-							ws,
-						)
-					}
-					ws.onclose = () => {
-						peers.removePeer(message.data.peerId)
-					}
-					ws.onerror = () => {
-						peers.removePeer(message.data.peerId)
-					}
-				} catch {
-					ws.close()
+				} else if (remoteId && peers.getWS(remoteId)) {
+					return this.handleRegularMessage(
+						message,
+						remoteId,
+						ws,
+					)
+				} else {
+					return ws.close()
+				}
+			}
+			ws.onclose = () => {
+				if (remoteId) {
+					peers.removePeer(remoteId)
 				}
 			}
 			ws.onerror = () => {
 				console.error(
 					`Error connecting to known peer ${peerAddress}`,
 				)
+				// onclose will run afterwards
 			}
 		} catch {
 			console.error(
 				`Failed to connect to known peer ${peerAddress}`,
 			)
 		}
+	}
+
+	private parseMessage = (message: string) => {
+		let parsedMessage: FullMessage
+		try {
+			parsedMessage = JSON.parse(message)
+		} catch {
+			return null
+		}
+		const checksum = messageChecksum(message)
+		if (!checksum) {
+			return null
+		}
+		return parsedMessage
 	}
 
 	// Operators send a heartbeat message every 90s
