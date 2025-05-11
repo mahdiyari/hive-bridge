@@ -6,8 +6,6 @@ import { messageHash } from '../helpers/p2p/message_hash.ts'
 import { isIPv4, isIPv6 } from 'node:net'
 import {
 	EventDetail,
-	FullHelloAckMessage,
-	FullHelloMessage,
 	FullMessage,
 	HelloAckMessage,
 	HelloMessage,
@@ -37,7 +35,7 @@ export class P2PNetwork {
 	private myIP: string = 'none'
 	private event = new EventTarget()
 
-	constructor(knownPeers?: string[], port?: number) {
+	constructor() {
 		this.knownPeers = Deno.env.get('PEERS')?.split(',') || []
 		this.port = Number(Deno.env.get('P2P_PORT')) || 3018
 		this.myId = randomUUID()
@@ -179,10 +177,6 @@ export class P2PNetwork {
 		ws.onmessage = (event) => {
 			const message = this.parseMessage(event.data.toString())
 			if (!message) {
-				console.warn(
-					'Closing connection because of bad message',
-					event.data.toString(),
-				)
 				return ws.close()
 			}
 			// If not handshaked and the first message is not hello, close
@@ -242,8 +236,13 @@ export class P2PNetwork {
 	}
 
 	/** Add timestamp and hash the message before sending to ws */
-	private wsSend = (ws: WebSocket, msg: Message) => {
+	private wsSend = (ws: WebSocket, msg: Message | FullMessage) => {
 		if (ws.readyState === WebSocket.OPEN) {
+			if ('hash' in msg) {
+				// The message is already FullMessage and is a repeat
+				peers.addMessage(msg.hash, msg)
+				return ws.send(JSON.stringify(msg))
+			}
 			const timestamp = Date.now()
 			const hash = messageHash(JSON.stringify({ ...msg, timestamp }))
 			const fullMessage = { ...msg, timestamp, hash }
@@ -333,10 +332,6 @@ export class P2PNetwork {
 			ws.onmessage = (event) => {
 				const message = this.parseMessage(event.data.toString())
 				if (!message) {
-					console.warn(
-						'Closing connection because of bad message',
-						event.data.toString(),
-					)
 					return ws.close()
 				}
 				// Any message other than HELLO_ACK is invalid before handshake
