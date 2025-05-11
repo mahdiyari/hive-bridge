@@ -179,6 +179,10 @@ export class P2PNetwork {
 		ws.onmessage = (event) => {
 			const message = this.parseMessage(event.data.toString())
 			if (!message) {
+				console.warn(
+					'Closing connection because of bad message',
+					event.data.toString(),
+				)
 				return ws.close()
 			}
 			// If not handshaked and the first message is not hello, close
@@ -329,6 +333,10 @@ export class P2PNetwork {
 			ws.onmessage = (event) => {
 				const message = this.parseMessage(event.data.toString())
 				if (!message) {
+					console.warn(
+						'Closing connection because of bad message',
+						event.data.toString(),
+					)
 					return ws.close()
 				}
 				// Any message other than HELLO_ACK is invalid before handshake
