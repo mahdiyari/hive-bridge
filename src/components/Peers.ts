@@ -50,12 +50,16 @@ class Peers {
 	}
 
 	public removePeer(id: string) {
+		if (!id) {
+			return
+		}
 		try {
 			const peer = this.peers.get(id)
 			peer?.ws.close()
 		} catch {
 			// The connection might been already closed
 		} finally {
+			console.warn('Removed peer', this.peers.get(id))
 			this.peers.delete(id)
 		}
 	}
@@ -109,13 +113,6 @@ class Peers {
 			peer.operator = operator
 		}
 	}
-
-	// public updateLastSeen(id: string, lastSeen = Date.now()) {
-	// 	const peer = this.peers.get(id)
-	// 	if (peer) {
-	// 		peer.lastSeen = lastSeen
-	// 	}
-	// }
 
 	public messageSeen(hash: string) {
 		return this.messages.has(hash)
