@@ -383,9 +383,10 @@ export class P2PNetwork {
 
 	private parseMessage = (message: ArrayBuffer) => {
 		let parsedMessage: FullMessage
+		const uint8message = new Uint8Array(message)
 		try {
-			console.log(message, typeof message)
-			parsedMessage = <FullMessage> decode(message)
+			parsedMessage = <FullMessage> decode(uint8message)
+			console.log(parsedMessage)
 		} catch {
 			return null
 		}
