@@ -252,7 +252,6 @@ export class P2PNetwork {
 			// so we don't broadcast it again when received from other peers
 			peers.addMessage(hash, fullMessage)
 			const encodedMsg = encode(fullMessage)
-			console.log('sent', encodedMsg)
 			ws.send(encodedMsg)
 		} else {
 			console.log(`ws connection is not open... removing the peer.`)
@@ -316,6 +315,8 @@ export class P2PNetwork {
 		try {
 			let remoteId: string | undefined
 			const ws = new WebSocket(`ws://${peerAddress}`)
+			ws.binaryType = 'arraybuffer'
+
 			// Send HELLO onOpen
 			ws.onopen = () => {
 				// Close the connection after 5s if not handshaked
@@ -335,7 +336,6 @@ export class P2PNetwork {
 			}
 			ws.onmessage = (event) => {
 				const message = this.parseMessage(event.data)
-				console.log(message)
 				if (!message) {
 					return ws.close()
 				}
@@ -387,7 +387,6 @@ export class P2PNetwork {
 	private parseMessage = (message: ArrayBuffer) => {
 		let parsedMessage: FullMessage
 		const uint8message = new Uint8Array(message)
-		console.log(message)
 		try {
 			parsedMessage = <FullMessage> decode(uint8message)
 		} catch {
@@ -397,7 +396,6 @@ export class P2PNetwork {
 		if (!checksum) {
 			return null
 		}
-		console.log(parsedMessage, typeof parsedMessage)
 		return parsedMessage
 	}
 
