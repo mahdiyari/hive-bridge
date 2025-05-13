@@ -251,8 +251,9 @@ export class P2PNetwork {
 			// Add message to the seen list
 			// so we don't broadcast it again when received from other peers
 			peers.addMessage(hash, fullMessage)
-			console.log('sent', fullMessage)
-			ws.send(encode(fullMessage))
+			const encodedMsg = encode(fullMessage)
+			console.log('sent', encodedMsg)
+			ws.send(encodedMsg)
 		} else {
 			console.log(`ws connection is not open... removing the peer.`)
 			ws.close()
