@@ -386,7 +386,6 @@ export class P2PNetwork {
 		const uint8message = new Uint8Array(message)
 		try {
 			parsedMessage = <FullMessage> decode(uint8message)
-			console.log(parsedMessage)
 		} catch {
 			return null
 		}
@@ -394,6 +393,7 @@ export class P2PNetwork {
 		if (!checksum) {
 			return null
 		}
+		console.log(parsedMessage, typeof parsedMessage)
 		return parsedMessage
 	}
 
