@@ -251,6 +251,7 @@ export class P2PNetwork {
 			// Add message to the seen list
 			// so we don't broadcast it again when received from other peers
 			peers.addMessage(hash, fullMessage)
+			console.log('sent', fullMessage)
 			ws.send(encode(fullMessage))
 		} else {
 			console.log(`ws connection is not open... removing the peer.`)
@@ -333,6 +334,7 @@ export class P2PNetwork {
 			}
 			ws.onmessage = (event) => {
 				const message = this.parseMessage(event.data)
+				console.log(message)
 				if (!message) {
 					return ws.close()
 				}
@@ -384,6 +386,7 @@ export class P2PNetwork {
 	private parseMessage = (message: ArrayBuffer) => {
 		let parsedMessage: FullMessage
 		const uint8message = new Uint8Array(message)
+		console.log(message)
 		try {
 			parsedMessage = <FullMessage> decode(uint8message)
 		} catch {
