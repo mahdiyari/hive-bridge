@@ -177,7 +177,7 @@ export class P2PNetwork {
 		}, 5_000)
 
 		ws.onmessage = (event) => {
-			const message = this.parseMessage(event.data.toString())
+			const message = this.parseMessage(event.data)
 			if (!message) {
 				return ws.close()
 			}
@@ -381,7 +381,7 @@ export class P2PNetwork {
 		}
 	}
 
-	private parseMessage = (message: Uint8Array) => {
+	private parseMessage = (message: ArrayBuffer) => {
 		let parsedMessage: FullMessage
 		try {
 			console.log(message, typeof message)
