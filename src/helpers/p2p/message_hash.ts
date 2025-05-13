@@ -1,7 +1,7 @@
-import { sha256 } from '@noble/hashes/sha256'
+import { sha256 } from '@noble/hashes/sha2'
 import { bytesToHex } from '@noble/hashes/utils'
 
-/** Return sha256 hash of a message */
+/** Return first 16 hex of sha256 hash of a message */
 export const messageHash = (message: string) => {
-	return bytesToHex(sha256(message))
+	return bytesToHex(sha256(message)).substring(0, 16)
 }
