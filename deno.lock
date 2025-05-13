@@ -18,11 +18,10 @@
     "jsr:@std/media-types@1": "1.1.0",
     "jsr:@std/path@1": "1.0.9",
     "jsr:@std/uuid@^1.0.5": "1.0.7",
-    "npm:ethereumjs-util@^7.1.5": "7.1.5",
+    "npm:@msgpack/msgpack@^3.1.1": "3.1.1",
     "npm:ethers@^6.13.5": "6.14.0",
     "npm:hive-tx@^6.1.3": "6.1.3",
-    "npm:path-to-regexp@^6.3.0": "6.3.0",
-    "npm:selfsigned@^2.4.1": "2.4.1"
+    "npm:path-to-regexp@^6.3.0": "6.3.0"
   },
   "jsr": {
     "@noble/curves@1.9.0": {
@@ -99,6 +98,9 @@
     "@adraffy/ens-normalize@1.10.1": {
       "integrity": "sha512-96Z2IP3mYmF1Xg2cDm8f1gWGf/HUVedQ3FMifV4kG/PQ4yEP51xDtRAEfhVNt5f/uzpNkZHwWQuUcu6D6K+Ekw=="
     },
+    "@msgpack/msgpack@3.1.1": {
+      "integrity": "sha512-DnBpqkMOUGayNVKyTLlkM6ILmU/m/+VUxGkuQlPQVAcvreLz5jn1OlQnWd8uHKL/ZSiljpM12rjRhr51VtvJUQ=="
+    },
     "@noble/ciphers@1.3.0": {
       "integrity": "sha512-2I0gnIVPtfnMw9ee9h1dJG7tp81+8Ob3OJb3Mv37rx5L40/b0i7djjCVvGOVqc9AEIQyvyu1i6ypKdFw8R8gQw=="
     },
@@ -120,40 +122,10 @@
     "@noble/hashes@1.8.0": {
       "integrity": "sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A=="
     },
-    "@types/bn.js@5.1.6": {
-      "integrity": "sha512-Xh8vSwUeMKeYYrj3cX4lGQgFSF/N03r+tv4AiLl1SucqV+uTQpxRcnM8AkXKHwYP9ZPXOYXRr2KPXpVlIvqh9w==",
-      "dependencies": [
-        "@types/node@22.12.0"
-      ]
-    },
-    "@types/node-forge@1.3.11": {
-      "integrity": "sha512-FQx220y22OKNTqaByeBGqHWYz4cl94tpcxeFdvBo3wjG6XPBuZ0BNgNZRV5J5TFmmcsJ4IzsLkmGRiQbnYsBEQ==",
-      "dependencies": [
-        "@types/node@22.12.0"
-      ]
-    },
-    "@types/node@22.12.0": {
-      "integrity": "sha512-Fll2FZ1riMjNmlmJOdAyY5pUbkftXslB5DgEzlIuNaiWhXd00FhWxVC/r4yV/4wBb9JfImTu+jiSvXTkJ7F/gA==",
-      "dependencies": [
-        "undici-types@6.20.0"
-      ]
-    },
     "@types/node@22.7.5": {
       "integrity": "sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==",
       "dependencies": [
-        "undici-types@6.19.8"
-      ]
-    },
-    "@types/pbkdf2@3.1.2": {
-      "integrity": "sha512-uRwJqmiXmh9++aSu1VNEn3iIxWOhd8AHXNSdlaLfdAAdSTY9jYVeGWnzejM3dvrkbqE3/hyQkQQ29IFATEGlew==",
-      "dependencies": [
-        "@types/node@22.12.0"
-      ]
-    },
-    "@types/secp256k1@4.0.6": {
-      "integrity": "sha512-hHxJU6PAEUn0TP4S/ZOzuTUvJWuZ6eIKeNKb5RBpODvSl6hp1Wrw4s7ATY50rklRCScUDpHzVA/DQdSjJ3UoYQ==",
-      "dependencies": [
-        "@types/node@22.12.0"
+        "undici-types"
       ]
     },
     "aes-js@4.0.0-beta.5": {
@@ -170,60 +142,14 @@
         "proxy-from-env"
       ]
     },
-    "base-x@3.0.11": {
-      "integrity": "sha512-xz7wQ8xDhdyP7tQxwdteLYeFfS68tSMNCZ/Y37WJ4bhGfKPpqEIlmIyueQHqOyoPhE6xNUqjzRr8ra0eF9VRvA==",
-      "dependencies": [
-        "safe-buffer"
-      ]
-    },
     "base-x@5.0.1": {
       "integrity": "sha512-M7uio8Zt++eg3jPj+rHMfCC+IuygQHHCOU+IYsVtik6FWjuYpVt/+MRKcgsAMHh8mMFAwnB+Bs+mTrFiXjMzKg=="
-    },
-    "blakejs@1.2.1": {
-      "integrity": "sha512-QXUSXI3QVc/gJME0dBpXrag1kbzOqCjCX8/b54ntNyW6sjtoqxqRk3LTmXzaJoh71zMsDCjM+47jS7XiwN/+fQ=="
-    },
-    "bn.js@4.12.2": {
-      "integrity": "sha512-n4DSx829VRTRByMRGdjQ9iqsN0Bh4OolPsFnaZBLcbi8iXcB+kJ9s7EnRt4wILZNV3kPLHkRVfOc/HvhC3ovDw=="
-    },
-    "bn.js@5.2.2": {
-      "integrity": "sha512-v2YAxEmKaBLahNwE1mjp4WON6huMNeuDvagFZW+ASCuA/ku0bXR9hSMw0XpiqMoA3+rmnyck/tPRSFQkoC9Cuw=="
-    },
-    "brorand@1.1.0": {
-      "integrity": "sha512-cKV8tMCEpQs4hK/ik71d6LrPOnpkpGBR0wzxqr68g2m/LB2GxVYQroAjMJZRVM1Y4BCjCKc3vAamxSzOY2RP+w=="
-    },
-    "browserify-aes@1.2.0": {
-      "integrity": "sha512-+7CHXqGuspUn/Sl5aO7Ea0xWGAtETPXNSAjHo48JfLdPWcMng33Xe4znFvQweqc/uzk5zSOI3H52CYnjCfb5hA==",
-      "dependencies": [
-        "buffer-xor",
-        "cipher-base",
-        "create-hash",
-        "evp_bytestokey",
-        "inherits",
-        "safe-buffer"
-      ]
-    },
-    "bs58@4.0.1": {
-      "integrity": "sha512-Ok3Wdf5vOIlBrgCvTq96gBkJw+JUEzdBgyaza5HLtPm7yTHkjRy8+JzNyHF7BHa0bNWOQIp3m5YF0nnFcOIKLw==",
-      "dependencies": [
-        "base-x@3.0.11"
-      ]
     },
     "bs58@6.0.0": {
       "integrity": "sha512-PD0wEnEYg6ijszw/u8s+iI3H17cTymlrwkKhDhPZq+Sokl3AU4htyBFTjAeNAlCCmg0f53g6ih3jATyCKftTfw==",
       "dependencies": [
-        "base-x@5.0.1"
+        "base-x"
       ]
-    },
-    "bs58check@2.1.2": {
-      "integrity": "sha512-0TS1jicxdU09dwJMNZtVAfzPi6Q6QeN0pM1Fkzrjn+XYHvzMKPU3pHVpva+769iNVSfIYWf7LJ6WR+BuuMf8cA==",
-      "dependencies": [
-        "bs58@4.0.1",
-        "create-hash",
-        "safe-buffer"
-      ]
-    },
-    "buffer-xor@1.0.3": {
-      "integrity": "sha512-571s0T7nZWK6vB67HI5dyUF7wXiNcfaPPPTl6zYCNApANjIvYJTg7hlud/+cJpdAhS7dVzqMLmfhfHR3rAcOjQ=="
     },
     "call-bind-apply-helpers@1.0.2": {
       "integrity": "sha512-Sp1ablJ0ivDkSzjcaJdxEunN5/XvksFJ2sMBFfq6x0ryhQV/2b/KwFe21cMpmHtPOSij8K99/wSfoEuTObmuMQ==",
@@ -232,38 +158,10 @@
         "function-bind"
       ]
     },
-    "cipher-base@1.0.6": {
-      "integrity": "sha512-3Ek9H3X6pj5TgenXYtNWdaBon1tgYCaebd+XPg0keyjEbEfkD4KkmAxkQ/i1vYvxdcT5nscLBfq9VJRmCBcFSw==",
-      "dependencies": [
-        "inherits",
-        "safe-buffer"
-      ]
-    },
     "combined-stream@1.0.8": {
       "integrity": "sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==",
       "dependencies": [
         "delayed-stream"
-      ]
-    },
-    "create-hash@1.2.0": {
-      "integrity": "sha512-z00bCGNHDG8mHAkP7CtT1qVu+bFQUPjYq/4Iv3C3kWjTFV10zIjfSoeqXo9Asws8gwSHDGj/hl2u4OGIjapeCg==",
-      "dependencies": [
-        "cipher-base",
-        "inherits",
-        "md5.js",
-        "ripemd160",
-        "sha.js"
-      ]
-    },
-    "create-hmac@1.1.7": {
-      "integrity": "sha512-MJG9liiZ+ogc4TzUwuvbER1JRdgvUFSB5+VR/g5h82fGaIRWMWddtKBHi7/sVhfjQZ6SehlyhvQYrcYkaUIpLg==",
-      "dependencies": [
-        "cipher-base",
-        "create-hash",
-        "inherits",
-        "ripemd160",
-        "safe-buffer",
-        "sha.js"
       ]
     },
     "delayed-stream@1.0.0": {
@@ -275,18 +173,6 @@
         "call-bind-apply-helpers",
         "es-errors",
         "gopd"
-      ]
-    },
-    "elliptic@6.6.1": {
-      "integrity": "sha512-RaddvvMatK2LJHqFJ+YA4WysVN5Ita9E35botqIYspQ4TkRAlCicdzKOjlyv/1Za5RyTNn7di//eEV0uTAfe3g==",
-      "dependencies": [
-        "bn.js@4.12.2",
-        "brorand",
-        "hash.js",
-        "hmac-drbg",
-        "inherits",
-        "minimalistic-assert",
-        "minimalistic-crypto-utils"
       ]
     },
     "es-define-property@1.0.1": {
@@ -310,53 +196,16 @@
         "hasown"
       ]
     },
-    "ethereum-cryptography@0.1.3": {
-      "integrity": "sha512-w8/4x1SGGzc+tO97TASLja6SLd3fRIK2tLVcV2Gx4IB21hE19atll5Cq9o3d0ZmAYC/8aw0ipieTSiekAea4SQ==",
-      "dependencies": [
-        "@types/pbkdf2",
-        "@types/secp256k1",
-        "blakejs",
-        "browserify-aes",
-        "bs58check",
-        "create-hash",
-        "create-hmac",
-        "hash.js",
-        "keccak",
-        "pbkdf2",
-        "randombytes",
-        "safe-buffer",
-        "scrypt-js",
-        "secp256k1",
-        "setimmediate"
-      ]
-    },
-    "ethereumjs-util@7.1.5": {
-      "integrity": "sha512-SDl5kKrQAudFBUe5OJM9Ac6WmMyYmXX/6sTmLZ3ffG2eY6ZIGBes3pEDxNN6V72WyOw4CPD5RomKdsa8DAAwLg==",
-      "dependencies": [
-        "@types/bn.js",
-        "bn.js@5.2.2",
-        "create-hash",
-        "ethereum-cryptography",
-        "rlp"
-      ]
-    },
     "ethers@6.14.0": {
       "integrity": "sha512-KgHwltNSMdbrGWEyKkM0Rt2s+u1nDH/5BVDQakLinzGEJi4bWindBzZSCC4gKsbZjwDTI6ex/8suR9Ihbmz4IQ==",
       "dependencies": [
         "@adraffy/ens-normalize",
         "@noble/curves@1.2.0",
         "@noble/hashes@1.3.2",
-        "@types/node@22.7.5",
+        "@types/node",
         "aes-js",
         "tslib",
         "ws"
-      ]
-    },
-    "evp_bytestokey@1.0.3": {
-      "integrity": "sha512-/f2Go4TognH/KvCISP7OUsHn85hT9nUkxxA9BEWxFn+Oj9o8ZNLm/40hdlgSLyuOimsrTKLUMEorQexp/aPQeA==",
-      "dependencies": [
-        "md5.js",
-        "safe-buffer"
       ]
     },
     "follow-redirects@1.15.9": {
@@ -408,21 +257,6 @@
         "has-symbols"
       ]
     },
-    "hash-base@3.1.0": {
-      "integrity": "sha512-1nmYp/rhMDiE7AYkDw+lLwlAzz0AntGIe51F3RfFfEqyQ3feY2eI/NcwC6umIQVOASPMsWJLJScWKSSvzL9IVA==",
-      "dependencies": [
-        "inherits",
-        "readable-stream",
-        "safe-buffer"
-      ]
-    },
-    "hash.js@1.1.7": {
-      "integrity": "sha512-taOaskGt4z4SOANNseOviYDvjEJinIkRgmp7LbKP2YTTmVxWBl87s/uzK9r+44BclBSp2X7K1hqeNfz9JbBeXA==",
-      "dependencies": [
-        "inherits",
-        "minimalistic-assert"
-      ]
-    },
     "hasown@2.0.2": {
       "integrity": "sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==",
       "dependencies": [
@@ -436,39 +270,11 @@
         "@noble/curves@1.9.0",
         "@noble/hashes@1.8.0",
         "axios",
-        "bs58@6.0.0"
+        "bs58"
       ]
-    },
-    "hmac-drbg@1.0.1": {
-      "integrity": "sha512-Tti3gMqLdZfhOQY1Mzf/AanLiqh1WTiJgEj26ZuYQ9fbkLomzGchCws4FyrSd4VkpBfiNhaE1On+lOz894jvXg==",
-      "dependencies": [
-        "hash.js",
-        "minimalistic-assert",
-        "minimalistic-crypto-utils"
-      ]
-    },
-    "inherits@2.0.4": {
-      "integrity": "sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ=="
-    },
-    "keccak@3.0.4": {
-      "integrity": "sha512-3vKuW0jV8J3XNTzvfyicFR5qvxrSAGl7KIhvgOu5cmWwM7tZRj3fMbj/pfIf4be7aznbc+prBWGjywox/g2Y6Q==",
-      "dependencies": [
-        "node-addon-api@2.0.2",
-        "node-gyp-build",
-        "readable-stream"
-      ],
-      "scripts": true
     },
     "math-intrinsics@1.1.0": {
       "integrity": "sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g=="
-    },
-    "md5.js@1.3.5": {
-      "integrity": "sha512-xitP+WxNPcTTOgnTJcrhM0xvdPepipPSf3I8EIpGKeFLjt3PlJLIDG3u8EX53ZIubkb+5U2+3rELYpEhHhzdkg==",
-      "dependencies": [
-        "hash-base",
-        "inherits",
-        "safe-buffer"
-      ]
     },
     "mime-db@1.52.0": {
       "integrity": "sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg=="
@@ -479,107 +285,11 @@
         "mime-db"
       ]
     },
-    "minimalistic-assert@1.0.1": {
-      "integrity": "sha512-UtJcAD4yEaGtjPezWuO9wC4nwUnVH/8/Im3yEHQP4b67cXlD/Qr9hdITCU1xDbSEXg2XKNaP8jsReV7vQd00/A=="
-    },
-    "minimalistic-crypto-utils@1.0.1": {
-      "integrity": "sha512-JIYlbt6g8i5jKfJ3xz7rF0LXmv2TkDxBLUkiBeZ7bAx4GnnNMr8xFpGnOxn6GhTEHx3SjRrZEoU+j04prX1ktg=="
-    },
-    "node-addon-api@2.0.2": {
-      "integrity": "sha512-Ntyt4AIXyaLIuMHF6IOoTakB3K+RWxwtsHNRxllEoA6vPwP9o4866g6YWDLUdnucilZhmkxiHwHr11gAENw+QA=="
-    },
-    "node-addon-api@5.1.0": {
-      "integrity": "sha512-eh0GgfEkpnoWDq+VY8OyvYhFEzBk6jIYbRKdIlyTiAXIVJ8PyBaKb0rp7oDtoddbdoHWhq8wwr+XZ81F1rpNdA=="
-    },
-    "node-forge@1.3.1": {
-      "integrity": "sha512-dPEtOeMvF9VMcYV/1Wb8CPoVAXtp6MKMlcbAt4ddqmGqUJ6fQZFXkNZNkNlfevtNkGtaSoXf/vNNNSvgrdXwtA=="
-    },
-    "node-gyp-build@4.8.4": {
-      "integrity": "sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==",
-      "bin": true
-    },
     "path-to-regexp@6.3.0": {
       "integrity": "sha512-Yhpw4T9C6hPpgPeA28us07OJeqZ5EzQTkbfwuhsUg0c237RomFoETJgmp2sa3F/41gfLE6G5cqcYwznmeEeOlQ=="
     },
-    "pbkdf2@3.1.2": {
-      "integrity": "sha512-iuh7L6jA7JEGu2WxDwtQP1ddOpaJNC4KlDEFfdQajSGgGPNi4OyDc2R7QnbY2bR9QjBVGwgvTdNJZoE7RaxUMA==",
-      "dependencies": [
-        "create-hash",
-        "create-hmac",
-        "ripemd160",
-        "safe-buffer",
-        "sha.js"
-      ]
-    },
     "proxy-from-env@1.1.0": {
       "integrity": "sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg=="
-    },
-    "randombytes@2.1.0": {
-      "integrity": "sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==",
-      "dependencies": [
-        "safe-buffer"
-      ]
-    },
-    "readable-stream@3.6.2": {
-      "integrity": "sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==",
-      "dependencies": [
-        "inherits",
-        "string_decoder",
-        "util-deprecate"
-      ]
-    },
-    "ripemd160@2.0.2": {
-      "integrity": "sha512-ii4iagi25WusVoiC4B4lq7pbXfAp3D9v5CwfkY33vffw2+pkDjY1D8GaN7spsxvCSx8dkPqOZCEZyfxcmJG2IA==",
-      "dependencies": [
-        "hash-base",
-        "inherits"
-      ]
-    },
-    "rlp@2.2.7": {
-      "integrity": "sha512-d5gdPmgQ0Z+AklL2NVXr/IoSjNZFfTVvQWzL/AM2AOcSzYP2xjlb0AC8YyCLc41MSNf6P6QVtjgPdmVtzb+4lQ==",
-      "dependencies": [
-        "bn.js@5.2.2"
-      ],
-      "bin": true
-    },
-    "safe-buffer@5.2.1": {
-      "integrity": "sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ=="
-    },
-    "scrypt-js@3.0.1": {
-      "integrity": "sha512-cdwTTnqPu0Hyvf5in5asVdZocVDTNRmR7XEcJuIzMjJeSHybHl7vpB66AzwTaIg6CLSbtjcxc8fqcySfnTkccA=="
-    },
-    "secp256k1@4.0.4": {
-      "integrity": "sha512-6JfvwvjUOn8F/jUoBY2Q1v5WY5XS+rj8qSe0v8Y4ezH4InLgTEeOOPQsRll9OV429Pvo6BCHGavIyJfr3TAhsw==",
-      "dependencies": [
-        "elliptic",
-        "node-addon-api@5.1.0",
-        "node-gyp-build"
-      ],
-      "scripts": true
-    },
-    "selfsigned@2.4.1": {
-      "integrity": "sha512-th5B4L2U+eGLq1TVh7zNRGBapioSORUeymIydxgFpwww9d2qyKvtuPU2jJuHvYAwwqi2Y596QBL3eEqcPEYL8Q==",
-      "dependencies": [
-        "@types/node-forge",
-        "node-forge"
-      ]
-    },
-    "setimmediate@1.0.5": {
-      "integrity": "sha512-MATJdZp8sLqDl/68LfQmbP8zKPLQNV6BIZoIgrscFDQ+RsvK/BxeDQOgyxKKoh0y/8h3BqVFnCqQ/gd+reiIXA=="
-    },
-    "sha.js@2.4.11": {
-      "integrity": "sha512-QMEp5B7cftE7APOjk5Y6xgrbWu+WkLVQwk8JNjZ8nKRciZaByEW6MubieAiToS7+dwvrjGhH8jRXz3MVd0AYqQ==",
-      "dependencies": [
-        "inherits",
-        "safe-buffer"
-      ],
-      "bin": true
-    },
-    "string_decoder@1.3.0": {
-      "integrity": "sha512-hkRX8U1WjJFd8LsDJ2yQ/wWWxaopEsABU1XfkM8A+j0+85JAGppt16cr1Whg6KIbb4okU6Mql6BOj+uup/wKeA==",
-      "dependencies": [
-        "safe-buffer"
-      ]
     },
     "tslib@2.7.0": {
       "integrity": "sha512-gLXCKdN1/j47AiHiOkJN69hJmcbGTHI0ImLmbYLHykhgeN0jVGola9yVjFgzCUklsZQMW55o+dW7IXv3RCXDzA=="
@@ -587,32 +297,9 @@
     "undici-types@6.19.8": {
       "integrity": "sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw=="
     },
-    "undici-types@6.20.0": {
-      "integrity": "sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg=="
-    },
-    "util-deprecate@1.0.2": {
-      "integrity": "sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw=="
-    },
     "ws@8.17.1": {
       "integrity": "sha512-6XQFvXTkbfUOZOKKILFG1PDK2NDQs4azKQl26T0YS5CxqWLgXajbPZ+h4gZekJyRqFU8pvnbAbbs/3TgRPy+GQ=="
     }
-  },
-  "remote": {
-    "https://deno.land/std@0.224.0/assert/assert.ts": "09d30564c09de846855b7b071e62b5974b001bb72a4b797958fe0660e7849834",
-    "https://deno.land/std@0.224.0/assert/assert_exists.ts": "43420cf7f956748ae6ed1230646567b3593cb7a36c5a5327269279c870c5ddfd",
-    "https://deno.land/std@0.224.0/assert/assertion_error.ts": "ba8752bd27ebc51f723702fac2f54d3e94447598f54264a6653d6413738a8917",
-    "https://deno.land/std@0.224.0/bytes/concat.ts": "86161274b5546a02bdb3154652418efe7af8c9310e8d54107a68aaa148e0f5ed",
-    "https://deno.land/std@0.224.0/crypto/_wasm/lib/deno_std_wasm_crypto.generated.mjs": "7cd490ae1553c97459bd02de4c3f0a552768a85621949b2366003f3cf84b99d7",
-    "https://deno.land/std@0.224.0/crypto/_wasm/mod.ts": "e89fbbc3c4722602ff975dd85f18273c7741ec766a9b68f6de4fd1d9876409f8",
-    "https://deno.land/std@0.224.0/crypto/crypto.ts": "e58d78f3db111a499261dbab037ec78cc89da0516a50e1f0205665980a3417e3",
-    "https://deno.land/std@0.224.0/flags/mod.ts": "88553267f34519c8982212185339efdb2d2e62c159ec558f47eb50c8952a6be3",
-    "https://deno.land/std@0.224.0/uuid/_common.ts": "05c787c5735776c4e48e30294878332c39cb7738f50b209df4eb9f2b0facce4d",
-    "https://deno.land/std@0.224.0/uuid/constants.ts": "eb6c96871e968adf3355507d7ae79adce71525fd6c1ca55c51d32ace0196d64e",
-    "https://deno.land/std@0.224.0/uuid/mod.ts": "cefc8e2f77d9e493739c8dc4ec141b12b855414bf757e778bf9b00f783506b76",
-    "https://deno.land/std@0.224.0/uuid/v1.ts": "cc45e7eb1d463d7d38b21a3c6e4de55ff98598ca442309321575fe841b323a54",
-    "https://deno.land/std@0.224.0/uuid/v3.ts": "689f2d64a9460a75877a2eed94662d9cb31bedb890d72fce0d161ef47d66cc26",
-    "https://deno.land/std@0.224.0/uuid/v4.ts": "1319a2eeff7259adda416ec5f7997ded80d3165ef0787012793fc8621c18c493",
-    "https://deno.land/std@0.224.0/uuid/v5.ts": "75f76d9e53583572fe3d4893168530986222d439b1545b56d4493c6d5d1cd81d"
   },
   "workspace": {
     "dependencies": [
@@ -621,10 +308,9 @@
       "jsr:@oak/oak@^17.1.4",
       "jsr:@std/assert@1",
       "jsr:@std/uuid@^1.0.5",
-      "npm:ethereumjs-util@^7.1.5",
+      "npm:@msgpack/msgpack@^3.1.1",
       "npm:ethers@^6.13.5",
-      "npm:hive-tx@^6.1.3",
-      "npm:selfsigned@^2.4.1"
+      "npm:hive-tx@^6.1.3"
     ]
   }
 }

@@ -20,6 +20,8 @@ import { PrivateKey } from 'hive-tx'
 import { peers } from './Peers.ts'
 import { operators } from './Operators.ts'
 import { sleep } from '../helpers/general/sleep.ts'
+import { encode } from '@msgpack/msgpack'
+import { decode } from '@msgpack/msgpack'
 // import { generate } from 'selfsigned'
 
 export class P2PNetwork {
@@ -241,7 +243,7 @@ export class P2PNetwork {
 			if ('hash' in msg) {
 				// The message is already FullMessage and is a repeat
 				peers.addMessage(msg.hash, msg)
-				return ws.send(JSON.stringify(msg))
+				return ws.send(encode(msg))
 			}
 			const timestamp = Date.now()
 			const hash = messageHash(JSON.stringify({ ...msg, timestamp }))
@@ -249,7 +251,7 @@ export class P2PNetwork {
 			// Add message to the seen list
 			// so we don't broadcast it again when received from other peers
 			peers.addMessage(hash, fullMessage)
-			ws.send(JSON.stringify(fullMessage))
+			ws.send(encode(fullMessage))
 		} else {
 			console.log(`ws connection is not open... removing the peer.`)
 			ws.close()
@@ -330,7 +332,7 @@ export class P2PNetwork {
 				this.wsSend(ws, helloMsg)
 			}
 			ws.onmessage = (event) => {
-				const message = this.parseMessage(event.data.toString())
+				const message = this.parseMessage(event.data)
 				if (!message) {
 					return ws.close()
 				}
@@ -379,14 +381,15 @@ export class P2PNetwork {
 		}
 	}
 
-	private parseMessage = (message: string) => {
+	private parseMessage = (message: Uint8Array) => {
 		let parsedMessage: FullMessage
 		try {
-			parsedMessage = JSON.parse(message)
+			console.log(message, typeof message)
+			parsedMessage = <FullMessage> decode(message)
 		} catch {
 			return null
 		}
-		const checksum = messageChecksum(message)
+		const checksum = messageChecksum(parsedMessage)
 		if (!checksum) {
 			return null
 		}

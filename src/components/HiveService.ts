@@ -1,7 +1,7 @@
 import { call } from 'hive-tx'
 import { config } from 'hive-tx'
-import { isValidAddress } from 'ethereumjs-util'
 import { TransferBody, TransferHistory } from '../helpers/hive/types.ts'
+import { ethers } from 'ethers'
 
 export class HiveService {
 	private MIN_AMOUNT = 1
@@ -69,7 +69,7 @@ export class HiveService {
 					opBody.memo.startsWith('ETH:') && Number(asset[0]) >= this.MIN_AMOUNT
 				) {
 					const ethAddress = opBody.memo.substring(4)
-					if (isValidAddress(ethAddress)) {
+					if (ethers.isAddress(ethAddress)) {
 						const customEvent = new CustomEvent('transfer', {
 							detail: { ...opBody, blockNum, timestamp },
 						})
