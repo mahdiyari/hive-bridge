@@ -26,7 +26,6 @@ export const messageChecksum = (
 		delete jsonMsg.hash
 		const newHash = messageHash(JSON.stringify(jsonMsg))
 		if (hash !== newHash) {
-			console.log('hash doesnt match')
 			return false
 		}
 		return true
