@@ -6,10 +6,10 @@ const MAX_VALID_TIME = 8_000 // 8s
 
 /** Verify the hash of the message and verify the message is not older than 8 seconds */
 export const messageChecksum = (
-	message: string | FullMessage,
+	message: FullMessage,
 ) => {
 	try {
-		const jsonMsg = typeof message === 'string' ? JSON.parse(message) : message
+		const jsonMsg: any = { ...message }
 		if (
 			!Object.hasOwn(jsonMsg, 'type') || !Object.hasOwn(jsonMsg, 'hash') ||
 			!Object.hasOwn(jsonMsg, 'timestamp')
@@ -26,6 +26,7 @@ export const messageChecksum = (
 		delete jsonMsg.hash
 		const newHash = messageHash(JSON.stringify(jsonMsg))
 		if (hash !== newHash) {
+			console.log('hash doesnt match')
 			return false
 		}
 		return true
