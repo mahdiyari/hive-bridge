@@ -52,8 +52,9 @@ export class P2PNetwork {
 		}, 1_000)
 
 		setInterval(() => {
+			this.connectToKnownPeers()
 			this.checkPeers()
-		}, 10_000)
+		}, 60_000)
 	}
 
 	/** Receive messages from the P2P network */
@@ -177,7 +178,7 @@ export class P2PNetwork {
 		}, 5_000)
 
 		ws.onmessage = (event) => {
-			const message = this.parseMessage(event.data)
+			const message = this.parseMessage(event.data.toString())
 			if (!message) {
 				return ws.close()
 			}
@@ -314,8 +315,14 @@ export class P2PNetwork {
 	private connectToPeer(peerAddress: string) {
 		try {
 			let remoteId: string | undefined
+			// skip already connected peers
+			const publicPeers = peers.getPublicPeers()
+			for (const peer of publicPeers) {
+				if (peer.address === peerAddress) {
+					return
+				}
+			}
 			const ws = new WebSocket(`ws://${peerAddress}`)
-			ws.binaryType = 'arraybuffer'
 
 			// Send HELLO onOpen
 			ws.onopen = () => {
@@ -335,7 +342,7 @@ export class P2PNetwork {
 				this.wsSend(ws, helloMsg)
 			}
 			ws.onmessage = (event) => {
-				const message = this.parseMessage(event.data)
+				const message = this.parseMessage(event.data.toString())
 				if (!message) {
 					return ws.close()
 				}
@@ -384,11 +391,10 @@ export class P2PNetwork {
 		}
 	}
 
-	private parseMessage = (message: ArrayBuffer) => {
+	private parseMessage = (message: string) => {
 		let parsedMessage: FullMessage
-		const uint8message = new Uint8Array(message)
 		try {
-			parsedMessage = <FullMessage> decode(uint8message)
+			parsedMessage = <FullMessage> JSON.parse(message)
 		} catch {
 			return null
 		}
@@ -398,6 +404,25 @@ export class P2PNetwork {
 		}
 		return parsedMessage
 	}
+
+	// TODO: custom encoding of the message to lower network usage
+	// private encodeMsg = (msg: FullMessage) => {
+	// 	let encodedMsg = msg.hash + ';' + msg.timestamp + ';' + msg.type
+	// 	switch (msg.type) {
+	// 		case 'HELLO':
+	// 			encodedMsg += ';' + msg.data.peerId + ';' + msg.data.address
+	// 			break
+	// 		case 'HELLO_ACK':
+	// 			encodedMsg += ';' + msg.data.peerId
+	// 			break
+	// 		case 'PEER_LIST':
+	// 			encodedMsg += ';' + msg.data.peers.join(',')
+	// 			break
+	// 		default:
+	// 			break
+	// 	}
+	// }
+	// private decodeMsg = (msg: string) => {}
 
 	// Operators send a heartbeat message every 90s
 	private initiateHeartbeat() {
@@ -472,7 +497,7 @@ export class P2PNetwork {
 			const pe = e as PeerMessageEvent
 			const msg = pe.detail.data
 			if (msg.type === 'PEER_LIST') {
-				for (const val of msg.data.message.peers) {
+				for (const val of msg.data.peers) {
 					// Don't connect to yourself
 					if (val === `${this.myIP}:${this.port}`) {
 						continue
@@ -512,9 +537,7 @@ export class P2PNetwork {
 				this.wsSend(ws, {
 					type: 'PEER_LIST',
 					data: {
-						message: {
-							peers: addresses,
-						},
+						peers: addresses,
 					},
 				})
 			}
