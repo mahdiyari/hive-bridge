@@ -60,9 +60,7 @@ export interface HiveSignatureMessage {
 export interface PeerListMessage {
 	type: 'PEER_LIST'
 	data: {
-		message: {
-			peers: string[]
-		}
+		peers: string[]
 	}
 }
 
