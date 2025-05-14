@@ -18,7 +18,6 @@
     "jsr:@std/media-types@1": "1.1.0",
     "jsr:@std/path@1": "1.0.9",
     "jsr:@std/uuid@^1.0.5": "1.0.7",
-    "npm:@msgpack/msgpack@^3.1.1": "3.1.1",
     "npm:ethers@^6.13.5": "6.14.0",
     "npm:hive-tx@^6.1.3": "6.1.3",
     "npm:path-to-regexp@^6.3.0": "6.3.0"
@@ -97,9 +96,6 @@
   "npm": {
     "@adraffy/ens-normalize@1.10.1": {
       "integrity": "sha512-96Z2IP3mYmF1Xg2cDm8f1gWGf/HUVedQ3FMifV4kG/PQ4yEP51xDtRAEfhVNt5f/uzpNkZHwWQuUcu6D6K+Ekw=="
-    },
-    "@msgpack/msgpack@3.1.1": {
-      "integrity": "sha512-DnBpqkMOUGayNVKyTLlkM6ILmU/m/+VUxGkuQlPQVAcvreLz5jn1OlQnWd8uHKL/ZSiljpM12rjRhr51VtvJUQ=="
     },
     "@noble/ciphers@1.3.0": {
       "integrity": "sha512-2I0gnIVPtfnMw9ee9h1dJG7tp81+8Ob3OJb3Mv37rx5L40/b0i7djjCVvGOVqc9AEIQyvyu1i6ypKdFw8R8gQw=="
@@ -308,7 +304,6 @@
       "jsr:@oak/oak@^17.1.4",
       "jsr:@std/assert@1",
       "jsr:@std/uuid@^1.0.5",
-      "npm:@msgpack/msgpack@^3.1.1",
       "npm:ethers@^6.13.5",
       "npm:hive-tx@^6.1.3"
     ]

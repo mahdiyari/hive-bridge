@@ -4,7 +4,6 @@
     "dev": "deno run --watch --env-file --allow-env --allow-net --allow-read --allow-ffi src/main.ts"
   },
   "imports": {
-    "@msgpack/msgpack": "npm:@msgpack/msgpack@^3.1.1",
     "@noble/curves": "jsr:@noble/curves@^1.8.1",
     "@noble/hashes": "jsr:@noble/hashes@^1.7.1",
     "@oak/oak": "jsr:@oak/oak@^17.1.4",

@@ -20,8 +20,6 @@ import { PrivateKey } from 'hive-tx'
 import { peers } from './Peers.ts'
 import { operators } from './Operators.ts'
 import { sleep } from '../helpers/general/sleep.ts'
-import { encode } from '@msgpack/msgpack'
-import { decode } from '@msgpack/msgpack'
 // import { generate } from 'selfsigned'
 
 export class P2PNetwork {
@@ -244,7 +242,7 @@ export class P2PNetwork {
 			if ('hash' in msg) {
 				// The message is already FullMessage and is a repeat
 				peers.addMessage(msg.hash, msg)
-				return ws.send(encode(msg))
+				return ws.send(JSON.stringify(msg))
 			}
 			const timestamp = Date.now()
 			const hash = messageHash(JSON.stringify({ ...msg, timestamp }))
@@ -252,7 +250,7 @@ export class P2PNetwork {
 			// Add message to the seen list
 			// so we don't broadcast it again when received from other peers
 			peers.addMessage(hash, fullMessage)
-			const encodedMsg = encode(fullMessage)
+			const encodedMsg = JSON.stringify(fullMessage)
 			ws.send(encodedMsg)
 		} else {
 			console.log(`ws connection is not open... removing the peer.`)
