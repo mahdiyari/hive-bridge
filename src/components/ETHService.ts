@@ -72,6 +72,7 @@ export class ETHService {
 			if (this.backupContract && contract !== this.backupContract) {
 				return this.hasMinted(address, blockNum, this.backupContract)
 			}
+			console.log('Error in hasMinted:')
 			throw e
 		}
 	}
