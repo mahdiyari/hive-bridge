@@ -11,6 +11,7 @@ import { signKeccakHash } from './helpers/eth/signKeccakHash.ts'
 
 addEventListener('unhandledrejection', (event) => {
 	console.error('🔥 Unhandled Promise Rejection:', event.reason)
+	throw event
 })
 
 // TODO:
