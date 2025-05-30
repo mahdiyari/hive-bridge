@@ -9,6 +9,10 @@ import { pendingUnwraps } from './components/PendingUnwraps.ts'
 import { hashWrapMessage } from './helpers/eth/hashWrapMessage.ts'
 import { signKeccakHash } from './helpers/eth/signKeccakHash.ts'
 
+addEventListener('unhandledrejection', (event) => {
+	console.error('🔥 Unhandled Promise Rejection:', event.reason)
+})
+
 // TODO:
 // We might want to send signatures out periodically if there is a pending wrap/unwrap
 // P2P limit etc might need tuning
