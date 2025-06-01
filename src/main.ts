@@ -10,7 +10,7 @@ import { hashWrapMessage } from './helpers/eth/hashWrapMessage.ts'
 import { signKeccakHash } from './helpers/eth/signKeccakHash.ts'
 
 addEventListener('unhandledrejection', (event) => {
-	console.error('🔥 Unhandled Promise Rejection:', event.reason)
+	console.error('🔥 Unhandled Promise Rejection:', event)
 	throw event
 })
 
