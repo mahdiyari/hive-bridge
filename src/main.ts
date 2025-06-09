@@ -14,6 +14,19 @@ addEventListener('unhandledrejection', (event) => {
 	throw event
 })
 
+// Temporary monkey patched fetch
+// Suspecting ethers.js unhandeled fetch calls
+const originalFetch = globalThis.fetch
+globalThis.fetch = async (...args) => {
+	console.log('🔎 fetch called:', args[0])
+	try {
+		return await originalFetch(...args)
+	} catch (err) {
+		console.error('🔥 fetch failed:', err)
+		throw err
+	}
+}
+
 // TODO:
 // We might want to send signatures out periodically if there is a pending wrap/unwrap
 // P2P limit etc might need tuning
