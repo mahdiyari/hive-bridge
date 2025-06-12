@@ -116,6 +116,7 @@ const main = () => {
 		// If we are operator, sign and broadcast our signature
 		if (isOperator && USERNAME) {
 			const signature = await signKeccakHash(msgHash)
+			console.log('adding signature', USERNAME)
 			pendingWraps.addSignature(msgHash, signature, USERNAME)
 			p2pNetwork.sendSignature(USERNAME, msgHash, signature)
 		}
