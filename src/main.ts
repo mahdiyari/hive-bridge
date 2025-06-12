@@ -23,7 +23,7 @@ import { signKeccakHash } from './helpers/eth/signKeccakHash.ts'
 
 const HIVE_ETH_CONTRACT: `0x${string}` =
 	'0x216D8Ff7F1047FeEea2104D8051Ae4f2C2BA0578'
-// const HIVE_ETH_CONTRACT = '0xdbDa07F0BcD6E241a7B892B6B1fE31488c13A5df'
+// const HIVE_ETH_CONTRACT = '0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8'
 const HBD_ETH_CONTRACT: `0x${string}` =
 	'0x180099e000B20AC13b91A7863a8210272B411f82'
 
@@ -116,7 +116,6 @@ const main = () => {
 		// If we are operator, sign and broadcast our signature
 		if (isOperator && USERNAME) {
 			const signature = await signKeccakHash(msgHash)
-			console.log('adding signature', USERNAME)
 			pendingWraps.addSignature(msgHash, signature, USERNAME)
 			p2pNetwork.sendSignature(USERNAME, msgHash, signature)
 		}
