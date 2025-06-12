@@ -1,4 +1,4 @@
-import { recoverAddress } from '@wevm/viem/utils'
+import { recoverMessageAddress } from '@wevm/viem/utils'
 import { operators } from './Operators.ts'
 
 class PendingWraps {
@@ -79,14 +79,13 @@ class PendingWraps {
 		operator: string,
 		retry = 1,
 	) {
-		console.log('adding sig', msgHash, signature, operator)
 		const wrap = this.pendingWraps.get(msgHash)
 		if (wrap) {
 			if (wrap.operators.includes(operator)) {
 				return
 			}
-			const recoveredAddress = await recoverAddress({
-				hash: msgHash,
+			const recoveredAddress = await recoverMessageAddress({
+				message: msgHash,
 				signature,
 			})
 			const address = operators.getOperatorAddresses(operator)
