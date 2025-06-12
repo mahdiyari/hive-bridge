@@ -1,5 +1,6 @@
 import { recoverMessageAddress } from '@wevm/viem/utils'
 import { operators } from './Operators.ts'
+import { sleep } from '../helpers/general/sleep.ts'
 
 class PendingWraps {
 	private pendingWraps: Map<
@@ -89,15 +90,16 @@ class PendingWraps {
 				message: msgHash,
 				signature,
 			})
-			console.log(operator, msgHash, signature, recoveredAddress)
-			const address = operators.getOperatorAddresses(operator)
+			let address = operators.getOperatorAddresses(operator)
+			if (!address) {
+				await sleep(5000)
+				address = operators.getOperatorAddresses(operator)
+			}
 			if (!address) {
 				return
 			}
-			console.log('address got', address)
 			for (let i = 0; i < address.length; i++) {
 				if (address[i] === recoveredAddress) {
-					console.log('sig pushed')
 					wrap.signatures.push(signature)
 					wrap.operators.push(operator)
 					break
