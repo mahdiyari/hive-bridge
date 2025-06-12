@@ -25,7 +25,7 @@ export interface SignatureMessage {
 	data: {
 		message: {
 			address: `0x${string}`
-			amount: bigint
+			amount: number
 			blockNum: number
 			contract: `0x${string}`
 		}

@@ -76,7 +76,11 @@ export class P2PNetwork {
 	}
 
 	/** Send the signature to all peers */
-	public sendSignature(operator: string, msgHash: string, signature: string) {
+	public sendSignature(
+		operator: string,
+		msgHash: string,
+		signature: `0x${string}`,
+	) {
 		const wrap = pendingWraps.getWrapByHash(msgHash)
 		if (!wrap) {
 			return
