@@ -13,7 +13,7 @@ export const signKeccakHash = (msgHash: `0x${string}`) => {
 		chain: sepolia,
 		transport: http(),
 	})
-	return account.signMessage({ message: { raw: msgHash } })
+	return account.signMessage({ message: msgHash })
 	// const signingKey = new ethers.SigningKey(PrivateKey.from(ACTIVE_KEY).key)
 	// return signingKey.sign(msgHash).serialized
 }
