@@ -24,13 +24,13 @@ export interface SignatureMessage {
 	type: 'ETH_SIGNATURE'
 	data: {
 		message: {
-			address: string
-			amount: number
+			address: `0x${string}`
+			amount: bigint
 			blockNum: number
-			contract: string
+			contract: `0x${string}`
 		}
 		operator: string
-		signature: string
+		signature: `0x${string}`
 	}
 }
 

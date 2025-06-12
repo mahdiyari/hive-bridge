@@ -1,7 +1,7 @@
 import { PrivateKey } from 'hive-tx'
-import { sha256 } from '@noble/hashes/sha256'
 import { Signature } from 'hive-tx'
 import { operators } from '../../components/Operators.ts'
+import { sha256, toBytes } from '@wevm/viem/utils'
 
 interface Heartbeat {
 	operator: string
@@ -14,7 +14,7 @@ interface SignedHeartbeat extends Heartbeat {
 }
 
 export const signHeartbeat = (msg: Heartbeat, key: PrivateKey) => {
-	const hash = sha256(JSON.stringify(msg))
+	const hash = sha256(toBytes(JSON.stringify(msg)), 'bytes')
 	return key.sign(hash).customToString()
 }
 
@@ -33,7 +33,7 @@ export const validateHeartbeat = (msg: SignedHeartbeat) => {
 			peerId: msg.peerId,
 			timestamp: msg.timestamp,
 		}
-		const hash = sha256(JSON.stringify(rawMsg))
+		const hash = sha256(toBytes(JSON.stringify(rawMsg)), 'bytes')
 		const recoveredKey = signature.getPublicKey(hash).toString()
 		const opKeys = operators.getOperatorKeys(msg.operator)
 		if (!opKeys || opKeys.length === 0) {

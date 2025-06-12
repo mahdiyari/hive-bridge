@@ -14,12 +14,12 @@ import {
 } from '../helpers/p2p/types.ts'
 import { pendingWraps } from './PendingWraps.ts'
 import { pendingUnwraps } from './PendingUnwraps.ts'
-import { bytesToHex } from '@noble/hashes/utils'
 import { signHeartbeat, validateHeartbeat } from '../helpers/p2p/heartbeat.ts'
 import { PrivateKey } from 'hive-tx'
 import { peers } from './Peers.ts'
 import { operators } from './Operators.ts'
 import { sleep } from '../helpers/general/sleep.ts'
+import { bytesToHex } from '@wevm/viem/utils'
 // import { generate } from 'selfsigned'
 
 export class P2PNetwork {
@@ -112,7 +112,7 @@ export class P2PNetwork {
 				operator,
 				message: {
 					ethTransactionHash,
-					digest: bytesToHex(digest),
+					digest: bytesToHex(digest).slice(2),
 				},
 				signature,
 			},

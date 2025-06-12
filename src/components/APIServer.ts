@@ -2,9 +2,9 @@ import { Application } from '@oak/oak/application'
 import { Router } from '@oak/oak/router'
 import { pendingWraps } from './PendingWraps.ts'
 import { pendingUnwraps } from './PendingUnwraps.ts'
-import { ethers } from 'ethers'
 import { peers } from './Peers.ts'
 import { operators } from './Operators.ts'
+import { isAddress } from '@wevm/viem'
 
 const router = new Router()
 router.get('/pending-hive-wraps', (context) => {
@@ -12,8 +12,7 @@ router.get('/pending-hive-wraps', (context) => {
 })
 
 router.get('/pending-hive-wraps/:usernameOrAddress', (ctx) => {
-	const isAddress = ethers.isAddress(ctx.params.usernameOrAddress)
-	if (isAddress) {
+	if (isAddress(ctx.params.usernameOrAddress)) {
 		const wraps = pendingWraps.getWrapsByAddress(ctx.params.usernameOrAddress)
 		ctx.response.body = wraps
 		return

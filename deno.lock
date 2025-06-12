@@ -1,9 +1,7 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@noble/curves@^1.8.1": "1.9.0",
-    "jsr:@noble/hashes@1.8.0": "1.8.0",
-    "jsr:@noble/hashes@^1.7.1": "1.8.0",
+    "jsr:@noble/secp256k1@^2.3.0": "2.3.0",
     "jsr:@oak/commons@1": "1.0.1",
     "jsr:@oak/oak@^17.1.4": "17.1.4",
     "jsr:@std/assert@1": "1.0.13",
@@ -18,19 +16,21 @@
     "jsr:@std/media-types@1": "1.1.0",
     "jsr:@std/path@1": "1.0.9",
     "jsr:@std/uuid@^1.0.5": "1.0.7",
-    "npm:ethers@^6.13.5": "6.14.0",
+    "jsr:@wevm/viem@^2.31.0": "2.31.0",
+    "npm:@noble/curves@1.9.1": "1.9.1",
+    "npm:@noble/hashes@1.8.0": "1.8.0",
+    "npm:@scure/bip32@1.7.0": "1.7.0",
+    "npm:@scure/bip39@1.6.0": "1.6.0",
+    "npm:@types/node@*": "22.15.15",
+    "npm:abitype@1.0.8": "1.0.8",
     "npm:hive-tx@^6.1.3": "6.1.3",
+    "npm:isows@1.0.7": "1.0.7_ws@8.17.1",
+    "npm:ox@0.7.1": "0.7.1",
     "npm:path-to-regexp@^6.3.0": "6.3.0"
   },
   "jsr": {
-    "@noble/curves@1.9.0": {
-      "integrity": "efa55b3375b755706462a083060ee91e1f79973568cb670f02e885538ed1661b",
-      "dependencies": [
-        "jsr:@noble/hashes@1.8.0"
-      ]
-    },
-    "@noble/hashes@1.8.0": {
-      "integrity": "b52a2fcb4d02f8d8137871564a31f1ee9e2b0d15eedabbf32d2f7333f0abc939"
+    "@noble/secp256k1@2.3.0": {
+      "integrity": "63eb4479a7c548e0ddea1cb5ea9bf7efacafe495e7f1c07bce1b4108df95967f"
     },
     "@oak/commons@1.0.1": {
       "integrity": "889ff210f0b4292591721be07244ecb1b5c118742f5273c70cf30d7cd4184d0c",
@@ -91,6 +91,18 @@
         "jsr:@std/bytes@^1.0.5",
         "jsr:@std/crypto@^1.0.4"
       ]
+    },
+    "@wevm/viem@2.31.0": {
+      "integrity": "6e6b189015dca5d98488a88af92e2defd9f9e0cccb9db43c82c3d9975e2a3152",
+      "dependencies": [
+        "npm:@noble/curves",
+        "npm:@noble/hashes",
+        "npm:@scure/bip32",
+        "npm:@scure/bip39",
+        "npm:abitype",
+        "npm:isows",
+        "npm:ox"
+      ]
     }
   },
   "npm": {
@@ -100,32 +112,47 @@
     "@noble/ciphers@1.3.0": {
       "integrity": "sha512-2I0gnIVPtfnMw9ee9h1dJG7tp81+8Ob3OJb3Mv37rx5L40/b0i7djjCVvGOVqc9AEIQyvyu1i6ypKdFw8R8gQw=="
     },
-    "@noble/curves@1.2.0": {
-      "integrity": "sha512-oYclrNgRaM9SsBUBVbb8M6DTV7ZHRTKugureoYEncY5c65HOmRzvSiTE3y5CYaPYJA/GVkrhXEoF0M3Ya9PMnw==",
+    "@noble/curves@1.9.1": {
+      "integrity": "sha512-k11yZxZg+t+gWvBbIswW0yoJlu8cHOC7dhunwOzoWH/mXGBiYyR4YY6hAEK/3EUs4UpB8la1RfdRpeGsFHkWsA==",
       "dependencies": [
-        "@noble/hashes@1.3.2"
+        "@noble/hashes"
       ]
     },
-    "@noble/curves@1.9.0": {
-      "integrity": "sha512-7YDlXiNMdO1YZeH6t/kvopHHbIZzlxrCV9WLqCY6QhcXOoXiNCMDqJIglZ9Yjx5+w7Dz30TITFrlTjnRg7sKEg==",
+    "@noble/curves@1.9.2": {
+      "integrity": "sha512-HxngEd2XUcg9xi20JkwlLCtYwfoFw4JGkuZpT+WlsPD4gB/cxkvTD8fSsoAnphGZhFdZYKeQIPCuFlWPm1uE0g==",
       "dependencies": [
-        "@noble/hashes@1.8.0"
+        "@noble/hashes"
       ]
-    },
-    "@noble/hashes@1.3.2": {
-      "integrity": "sha512-MVC8EAQp7MvEcm30KWENFjgR+Mkmf+D189XJTkFIlwohU5hcBbn1ZkKq7KVTi2Hme3PMGF390DaL52beVrIihQ=="
     },
     "@noble/hashes@1.8.0": {
       "integrity": "sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A=="
     },
-    "@types/node@22.7.5": {
-      "integrity": "sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==",
+    "@scure/base@1.2.6": {
+      "integrity": "sha512-g/nm5FgUa//MCj1gV09zTJTaM6KBAHqLN907YVQqf7zC49+DcO4B1so4ZX07Ef10Twr6nuqYEH9GEggFXA4Fmg=="
+    },
+    "@scure/bip32@1.7.0": {
+      "integrity": "sha512-E4FFX/N3f4B80AKWp5dP6ow+flD1LQZo/w8UnLGYZO674jS6YnYeepycOOksv+vLPSpgN35wgKgy+ybfTb2SMw==",
+      "dependencies": [
+        "@noble/curves@1.9.2",
+        "@noble/hashes",
+        "@scure/base"
+      ]
+    },
+    "@scure/bip39@1.6.0": {
+      "integrity": "sha512-+lF0BbLiJNwVlev4eKelw1WWLaiKXw7sSl8T6FvBlWkdX+94aGJ4o8XjUdlyhTCjd8c+B3KT3JfS8P0bLRNU6A==",
+      "dependencies": [
+        "@noble/hashes",
+        "@scure/base"
+      ]
+    },
+    "@types/node@22.15.15": {
+      "integrity": "sha512-R5muMcZob3/Jjchn5LcO8jdKwSCbzqmPB6ruBxMcf9kbxtniZHP327s6C37iOfuw8mbKK3cAQa7sEl7afLrQ8A==",
       "dependencies": [
         "undici-types"
       ]
     },
-    "aes-js@4.0.0-beta.5": {
-      "integrity": "sha512-G965FqalsNyrPqgEGON7nIx1e/OVENSgiEIzyC63haUMuvNnwIgIjMs52hlTCKhkBny7A2ORNlfY9Zu+jmGk1Q=="
+    "abitype@1.0.8": {
+      "integrity": "sha512-ZeiI6h3GnW06uYDLx0etQtX/p8E24UaHHBj57RSjK7YBFe7iuVn07EDpOeP451D06sF27VOz9JJPlIKJmXgkEg=="
     },
     "asynckit@0.4.0": {
       "integrity": "sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q=="
@@ -192,27 +219,19 @@
         "hasown"
       ]
     },
-    "ethers@6.14.0": {
-      "integrity": "sha512-KgHwltNSMdbrGWEyKkM0Rt2s+u1nDH/5BVDQakLinzGEJi4bWindBzZSCC4gKsbZjwDTI6ex/8suR9Ihbmz4IQ==",
-      "dependencies": [
-        "@adraffy/ens-normalize",
-        "@noble/curves@1.2.0",
-        "@noble/hashes@1.3.2",
-        "@types/node",
-        "aes-js",
-        "tslib",
-        "ws"
-      ]
+    "eventemitter3@5.0.1": {
+      "integrity": "sha512-GWkBvjiSZK87ELrYOSESUYeVIc9mvLLf/nXalMOS5dYrgZq9o5OVkbZAVM06CVxYsCwH9BDZFPlQTlPA1j4ahA=="
     },
     "follow-redirects@1.15.9": {
       "integrity": "sha512-gew4GsXizNgdoRyqmyfMHyAmXsZDk6mHkSxZFCzW9gwlbtOW44CDtYavM+y+72qD/Vq2l550kMF52DT8fOLJqQ=="
     },
-    "form-data@4.0.2": {
-      "integrity": "sha512-hGfm/slu0ZabnNt4oaRZ6uREyfCj6P4fT/n6A1rGV+Z0VdGXjfOhVUpkn6qVQONHGIFwmveGXyDs75+nr6FM8w==",
+    "form-data@4.0.3": {
+      "integrity": "sha512-qsITQPfmvMOSAdeyZ+12I1c+CKSstAFAwu+97zrnWAbIr5u8wfsExUzCesVLC8NgHuRUqNN4Zy6UPWUTRGslcA==",
       "dependencies": [
         "asynckit",
         "combined-stream",
         "es-set-tostringtag",
+        "hasown",
         "mime-types"
       ]
     },
@@ -263,10 +282,16 @@
       "integrity": "sha512-JUP6ajZUJuczM1l4+PBERJ+QTTGj1X0hce/rrbFqkt4HFG/q6YghfmjJuXI/WakftWi91OFWFunH1wdnuMnluA==",
       "dependencies": [
         "@noble/ciphers",
-        "@noble/curves@1.9.0",
-        "@noble/hashes@1.8.0",
+        "@noble/curves@1.9.2",
+        "@noble/hashes",
         "axios",
         "bs58"
+      ]
+    },
+    "isows@1.0.7_ws@8.17.1": {
+      "integrity": "sha512-I1fSfDCZL5P0v33sVqeTDSpcstAg/N+wF5HS033mogOVIp4B+oHC7oOCsA3axAbBSGTJ8QubbNmnIRN/h8U7hg==",
+      "dependencies": [
+        "ws"
       ]
     },
     "math-intrinsics@1.1.0": {
@@ -281,17 +306,27 @@
         "mime-db"
       ]
     },
+    "ox@0.7.1": {
+      "integrity": "sha512-+k9fY9PRNuAMHRFIUbiK9Nt5seYHHzSQs9Bj+iMETcGtlpS7SmBzcGSVUQO3+nqGLEiNK4598pHNFlVRaZbRsg==",
+      "dependencies": [
+        "@adraffy/ens-normalize",
+        "@noble/ciphers",
+        "@noble/curves@1.9.2",
+        "@noble/hashes",
+        "@scure/bip32",
+        "@scure/bip39",
+        "abitype",
+        "eventemitter3"
+      ]
+    },
     "path-to-regexp@6.3.0": {
       "integrity": "sha512-Yhpw4T9C6hPpgPeA28us07OJeqZ5EzQTkbfwuhsUg0c237RomFoETJgmp2sa3F/41gfLE6G5cqcYwznmeEeOlQ=="
     },
     "proxy-from-env@1.1.0": {
       "integrity": "sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg=="
     },
-    "tslib@2.7.0": {
-      "integrity": "sha512-gLXCKdN1/j47AiHiOkJN69hJmcbGTHI0ImLmbYLHykhgeN0jVGola9yVjFgzCUklsZQMW55o+dW7IXv3RCXDzA=="
-    },
-    "undici-types@6.19.8": {
-      "integrity": "sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw=="
+    "undici-types@6.21.0": {
+      "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="
     },
     "ws@8.17.1": {
       "integrity": "sha512-6XQFvXTkbfUOZOKKILFG1PDK2NDQs4azKQl26T0YS5CxqWLgXajbPZ+h4gZekJyRqFU8pvnbAbbs/3TgRPy+GQ=="
@@ -299,12 +334,11 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@noble/curves@^1.8.1",
-      "jsr:@noble/hashes@^1.7.1",
+      "jsr:@noble/secp256k1@^2.3.0",
       "jsr:@oak/oak@^17.1.4",
       "jsr:@std/assert@1",
       "jsr:@std/uuid@^1.0.5",
-      "npm:ethers@^6.13.5",
+      "jsr:@wevm/viem@^2.31.0",
       "npm:hive-tx@^6.1.3"
     ]
   }

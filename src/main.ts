@@ -9,23 +9,10 @@ import { pendingUnwraps } from './components/PendingUnwraps.ts'
 import { hashWrapMessage } from './helpers/eth/hashWrapMessage.ts'
 import { signKeccakHash } from './helpers/eth/signKeccakHash.ts'
 
-addEventListener('unhandledrejection', (event) => {
-	console.error('🔥 Unhandled Promise Rejection:', event)
-	throw event
-})
-
-// Temporary monkey patched fetch
-// Suspecting ethers.js unhandeled fetch calls
-const originalFetch = globalThis.fetch
-globalThis.fetch = async (...args) => {
-	console.log('🔎 fetch called:', args[0])
-	try {
-		return await originalFetch(...args)
-	} catch (err) {
-		console.error('🔥 fetch failed:', err)
-		throw err
-	}
-}
+// addEventListener('unhandledrejection', (event) => {
+// 	console.error('🔥 Unhandled Promise Rejection:', event)
+// 	throw event
+// })
 
 // TODO:
 // We might want to send signatures out periodically if there is a pending wrap/unwrap
@@ -34,9 +21,11 @@ globalThis.fetch = async (...args) => {
 // We are still trusting Hive API nodes (the most likely attack vector I think)
 // Proxy ETH contract testing but should be simple
 
-const HIVE_ETH_CONTRACT = '0x216D8Ff7F1047FeEea2104D8051Ae4f2C2BA0578'
+const HIVE_ETH_CONTRACT: `0x${string}` =
+	'0x216D8Ff7F1047FeEea2104D8051Ae4f2C2BA0578'
 // const HIVE_ETH_CONTRACT = '0xdbDa07F0BcD6E241a7B892B6B1fE31488c13A5df'
-const HBD_ETH_CONTRACT = '0x180099e000B20AC13b91A7863a8210272B411f82'
+const HBD_ETH_CONTRACT: `0x${string}` =
+	'0x180099e000B20AC13b91A7863a8210272B411f82'
 
 // Update this upon contract change while testing
 const HIVE_GENESIS = 95507645
@@ -45,9 +34,6 @@ const TREASURY = Deno.env.get('TREASURY')
 if (!TREASURY) {
 	throw new Error('Missing TREASURY from .env')
 }
-
-const port1 = 8080
-const knownPeers1 = [`localhost:8081`]
 
 const USERNAME = Deno.env.get('USERNAME')
 const ACTIVE_KEY = Deno.env.get('ACTIVE_KEY')
@@ -96,7 +82,7 @@ const main = () => {
 
 	hiveService.onTransfer(async (detail) => {
 		const symbol = detail.amount.split(' ')[1]
-		const ethAddress = detail.memo.substring(4)
+		const ethAddress = <`0x${string}`> detail.memo.substring(4)
 		let hasMinted = true
 		// Remove the decimals from amount
 		const amount = Number(detail.amount.split(' ')[0]) * 1000
@@ -113,7 +99,7 @@ const main = () => {
 		}
 		const msgHash = hashWrapMessage(
 			ethAddress,
-			amount,
+			BigInt(amount),
 			blockNum,
 			contractAddress,
 		)
@@ -129,7 +115,7 @@ const main = () => {
 		)
 		// If we are operator, sign and broadcast our signature
 		if (isOperator && USERNAME) {
-			const signature = signKeccakHash(msgHash)
+			const signature = await signKeccakHash(msgHash)
 			pendingWraps.addSignature(msgHash, signature, USERNAME)
 			p2pNetwork.sendSignature(USERNAME, msgHash, signature)
 		}

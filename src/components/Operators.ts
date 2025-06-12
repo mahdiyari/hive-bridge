@@ -1,8 +1,5 @@
 import { call } from 'hive-tx'
-import { bytesToHex } from '@noble/hashes/utils'
-import { PublicKey } from 'hive-tx'
-import { ethers } from 'ethers'
-import { peers } from './Peers.ts'
+import { getAddressFromHiveKey } from '../helpers/eth/getAddressFromHiveKey.ts'
 
 const TREASURY = Deno.env.get('TREASURY')
 if (!TREASURY) {
@@ -66,13 +63,12 @@ class Operators {
 			temp.push(username)
 			const addresses = []
 			for (let k = 0; k < pubKey.length; k++) {
-				const pkey = PublicKey.from(pubKey[k])
-				const hexPubKey = '0x' + bytesToHex(pkey.key)
-				addresses.push(ethers.computeAddress(hexPubKey))
+				addresses.push(getAddressFromHiveKey(pubKey[k]))
 			}
 			this.operatorKeys.set(username, pubKey)
 			this.operatorAddresses.set(username, addresses)
 		}
+		console.log(Object.fromEntries(this.operatorAddresses))
 		this.operators = temp
 	}
 
