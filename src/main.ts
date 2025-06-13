@@ -99,14 +99,14 @@ const main = () => {
 		}
 		const msgHash = hashWrapMessage(
 			ethAddress,
-			amount,
+			BigInt(amount),
 			blockNum,
 			contractAddress,
 		)
 		// Add to the list of pendingWraps
 		pendingWraps.addNewWrap(
 			ethAddress,
-			amount,
+			BigInt(amount),
 			blockNum,
 			contractAddress,
 			detail.from,
