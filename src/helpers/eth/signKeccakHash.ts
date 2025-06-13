@@ -1,16 +1,14 @@
 import { PrivateKey } from 'hive-tx'
 import { createWalletClient, http } from '@wevm/viem'
 import { bytesToHex } from '@wevm/viem/utils'
-import { sepolia } from '@wevm/viem/chains'
-import { privateKeyToAccount } from '@wevm/viem/accounts'
 
 /** Sign a message hash and return an ETH signature */
 export const signKeccakHash = (msgHash: string) => {
 	const ACTIVE_KEY = <string> Deno.env.get('ACTIVE_KEY')
-	const keyHex = bytesToHex(PrivateKey.from(ACTIVE_KEY).key)
+	const keyHex = <`0x${string}`> ('0x' +
+		bytesToHex(PrivateKey.from(ACTIVE_KEY).key))
 	const account = createWalletClient({
-		account: privateKeyToAccount(keyHex),
-		chain: sepolia,
+		account: keyHex,
 		transport: http(),
 	})
 	return account.signMessage({ message: msgHash })
