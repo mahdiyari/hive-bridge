@@ -84,12 +84,10 @@ class PendingWraps {
 			if (wrap.operators.includes(operator)) {
 				return
 			}
-
 			const recoveredAddress = await recoverMessageAddress({
 				message: msgHash,
 				signature,
 			})
-			console.log(operator, msgHash, signature, recoveredAddress)
 			const address = operators.getOperatorAddresses(operator)
 			if (!address) {
 				return
