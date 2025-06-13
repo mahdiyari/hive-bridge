@@ -5,7 +5,7 @@ import { sepolia } from '@wevm/viem/chains'
 import { privateKeyToAccount } from '@wevm/viem/accounts'
 
 /** Sign a message hash and return an ETH signature */
-export const signKeccakHash = (msgHash: `0x${string}`) => {
+export const signKeccakHash = (msgHash: string) => {
 	const ACTIVE_KEY = <string> Deno.env.get('ACTIVE_KEY')
 	const keyHex = bytesToHex(PrivateKey.from(ACTIVE_KEY).key)
 	const account = createWalletClient({
@@ -13,7 +13,7 @@ export const signKeccakHash = (msgHash: `0x${string}`) => {
 		chain: sepolia,
 		transport: http(),
 	})
-	return account.signMessage({ message: { raw: msgHash } })
+	return account.signMessage({ message: msgHash })
 	// const signingKey = new ethers.SigningKey(PrivateKey.from(ACTIVE_KEY).key)
 	// return signingKey.sign(msgHash).serialized
 }

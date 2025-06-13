@@ -87,7 +87,7 @@ class PendingWraps {
 			}
 
 			const recoveredAddress = await recoverMessageAddress({
-				message: { raw: msgHash },
+				message: msgHash,
 				signature,
 			})
 			let address = operators.getOperatorAddresses(operator)
