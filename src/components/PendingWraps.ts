@@ -1,4 +1,4 @@
-import { recoverAddress } from '@wevm/viem/utils'
+import { ethers } from 'ethers'
 import { operators } from './Operators.ts'
 
 class PendingWraps {
@@ -73,9 +73,9 @@ class PendingWraps {
 	}
 
 	/** Add a signature to the pending wrap */
-	public async addSignature(
-		msgHash: `0x${string}`,
-		signature: `0x${string}`,
+	public addSignature(
+		msgHash: string,
+		signature: string,
 		operator: string,
 		retry = 1,
 	) {
@@ -84,10 +84,7 @@ class PendingWraps {
 			if (wrap.operators.includes(operator)) {
 				return
 			}
-			const recoveredAddress = await recoverAddress({
-				hash: msgHash,
-				signature,
-			})
+			const recoveredAddress = ethers.recoverAddress(msgHash, signature)
 			const address = operators.getOperatorAddresses(operator)
 			if (!address) {
 				return
