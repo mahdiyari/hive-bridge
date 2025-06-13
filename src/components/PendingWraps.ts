@@ -94,10 +94,8 @@ class PendingWraps {
 			if (!address) {
 				return
 			}
-			console.log('address got', address)
 			for (let i = 0; i < address.length; i++) {
 				if (address[i] === recoveredAddress) {
-					console.log('sig pushed')
 					wrap.signatures.push(signature)
 					wrap.operators.push(operator)
 					break
