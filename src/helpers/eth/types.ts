@@ -3,6 +3,6 @@ export interface UnwrapEvent {
 	blockTime: number
 	trx: string
 	messenger: string
-	amount: number
+	amount: bigint
 	username: string
 }

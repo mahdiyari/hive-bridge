@@ -106,7 +106,7 @@ const main = () => {
 		// Add to the list of pendingWraps
 		pendingWraps.addNewWrap(
 			ethAddress,
-			BigInt(amount),
+			amount,
 			blockNum,
 			contractAddress,
 			detail.from,

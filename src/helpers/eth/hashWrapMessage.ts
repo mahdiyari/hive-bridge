@@ -7,14 +7,14 @@ import { encodePacked, keccak256 } from '@wevm/viem/utils'
 // Include contract address to avoid multi contract replay attacks
 export const hashWrapMessage = (
 	address: `0x${string}`,
-	amount: number,
+	amount: bigint,
 	blockNum: number,
 	contract: `0x${string}`,
 ) => {
 	return keccak256(
 		encodePacked(
 			['address', 'string', 'uint64', 'string', 'uint32', 'string', 'address'],
-			[address, ';', BigInt(amount), ';', blockNum, ';', contract],
+			[address, ';', amount, ';', blockNum, ';', contract],
 		),
 	)
 }

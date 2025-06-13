@@ -6,10 +6,10 @@ class PendingWraps {
 		string,
 		{
 			message: {
-				address: `0x${string}`
+				address: string
 				amount: number
 				blockNum: number
-				contract: `0x${string}`
+				contract: string
 			}
 			username: string
 			signatures: string[]
@@ -40,10 +40,10 @@ class PendingWraps {
 	}
 
 	public addNewWrap(
-		address: `0x${string}`,
+		address: string,
 		amount: number,
 		blockNum: number,
-		contract: `0x${string}`,
+		contract: string,
 		username: string,
 		msgHash: string,
 		timestamp: number,
@@ -79,7 +79,6 @@ class PendingWraps {
 		operator: string,
 		retry = 1,
 	) {
-		console.log('adding sig', msgHash, signature, operator)
 		const wrap = this.pendingWraps.get(msgHash)
 		if (wrap) {
 			if (wrap.operators.includes(operator)) {
