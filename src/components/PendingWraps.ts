@@ -1,5 +1,6 @@
 import { ethers } from 'ethers'
 import { operators } from './Operators'
+import { sleep } from '../helpers/general/sleep'
 
 class PendingWraps {
   private pendingWraps: Map<
@@ -73,7 +74,7 @@ class PendingWraps {
   }
 
   /** Add a signature to the pending wrap */
-  public addSignature(
+  public async addSignature(
     msgHash: string,
     signature: string,
     operator: string,
@@ -84,9 +85,12 @@ class PendingWraps {
       if (wrap.operators.includes(operator)) {
         return
       }
-      console.log(signature)
       const recoveredAddress = ethers.recoverAddress(msgHash, signature)
-      const address = operators.getOperatorAddresses(operator)
+      let address = operators.getOperatorAddresses(operator)
+      if (!address) {
+        await sleep(5000)
+        address = operators.getOperatorAddresses(operator)
+      }
       if (!address) {
         return
       }
