@@ -32,6 +32,9 @@ export class HiveService {
   private async processHistory(count = 1000) {
     let transfers = await this.getTransferHistory(-1, count)
     let len = transfers.length
+    if (!transfers || !len) {
+      return
+    }
     // No new items in the history
     if (transfers[len - 1][0] <= this.lastHistoryId) {
       return
