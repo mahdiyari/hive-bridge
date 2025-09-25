@@ -9,18 +9,18 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "dotenv": "^16.5.0",
-    "ethers": "^6.14.4",
-    "express": "^5.1.0",
-    "hive-tx": "^6.1.3",
-    "ws": "^8.18.2"
+    "dotenv": "17.2.2",
+    "ethers": "6.15.0",
+    "express": "5.1.0",
+    "hive-tx": "6.1.3",
+    "ws": "8.18.3"
   },
   "devDependencies": {
     "@types/dotenv": "^6.1.1",
     "@types/express": "^5.0.3",
     "@types/ws": "^8.18.1",
-    "tsx": "^4.20.3",
-    "typescript": "^5.8.3"
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
   },
   "keywords": [],
   "author": "",
