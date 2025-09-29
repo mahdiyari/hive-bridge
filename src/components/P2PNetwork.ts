@@ -13,7 +13,7 @@ import {
 } from '../helpers/p2p/types'
 import { pendingWraps } from './PendingWraps'
 import { pendingUnwraps } from './PendingUnwraps'
-import { bytesToHex } from '@noble/hashes/utils'
+import { bytesToHex } from '@noble/hashes/utils.js'
 import { signHeartbeat, validateHeartbeat } from '../helpers/p2p/heartbeat'
 import { peers } from './Peers'
 import { operators } from './Operators'
@@ -24,7 +24,6 @@ import { WebSocketServer, WebSocket } from 'ws'
 import { uuidValidate } from '../helpers/p2p/uuidValidate'
 import { ethers } from 'ethers'
 import { PrivateKey } from 'hive-tx'
-// import { generate } from 'selfsigned'
 
 export class P2PNetwork {
   private knownPeers: string[] = []
@@ -40,8 +39,8 @@ export class P2PNetwork {
   private event = new EventTarget()
 
   constructor() {
-    this.knownPeers = process.env.PEERS?.split(',') || []
-    this.port = Number(process.env.P2P_PORT) || 3018
+    this.knownPeers = process.env.PEERS?.replaceAll('"', '')?.split(',') || []
+    this.port = Number(process.env.P2P_PORT?.replaceAll('"', '')) || 3018
     this.myId = randomUUID()
     this.startServer().then(() => {
       this.connectToKnownPeers()
@@ -131,12 +130,6 @@ export class P2PNetwork {
     } else if (isIPv4(ip.ip)) {
       this.myIP = ip.ip
     }
-    // const attrs = [{ name: 'commonName', value: this.myIP }]
-    // const pems = generate(attrs, {
-    // 	days: 3650,
-    // 	keySize: 2048,
-    // 	algorithm: 'sha256',
-    // })
     const app = express()
     app.use(express.json())
     const server = createServer(app)
@@ -162,15 +155,27 @@ export class P2PNetwork {
         const wraps = pendingWraps.getWrapsByAddress(
           req.params.usernameOrAddress
         )
-        return res.json(wraps)
+        res.json(wraps)
+        return
       }
       const wraps = pendingWraps.getWrapsByUsername(
         req.params.usernameOrAddress
       )
       res.json(wraps)
     })
+    app.get('/pending-hive-unwraps', (req, res) => {
+      res.json(Object.fromEntries(pendingUnwraps.getAllUnwraps()))
+    })
 
-    const host = process.env.LISTEN_HOST || '::'
+    app.get('/peers', (req, res) => {
+      res.json(peers.getAllPeers())
+    })
+
+    app.get('/operators', (req, res) => {
+      res.json(operators.getOperatorsStatus())
+    })
+
+    const host = process.env.LISTEN_HOST?.replaceAll('"', '') || '::'
     server.listen(this.port, () => {
       console.log(`API Server running on http://${host}:${this.port}`)
       console.log(
@@ -178,34 +183,6 @@ export class P2PNetwork {
         `ID: ${this.myId}`
       )
     })
-
-    // Deno.serve({
-    //   hostname: process.env.LISTEN_HOST || '::',
-    //   port: this.port,
-    //   // cert: pems.cert,
-    //   // key: pems.private,
-    //   handler: (request) => {
-    //     if (request.headers.get('upgrade') === 'websocket') {
-    //       const { socket, response } = Deno.upgradeWebSocket(request)
-    //       return this.handleIncomingConnection(socket, response)
-    //     }
-    //     if (request.method === 'GET') {
-    //       // We use /status on the p2p port to detect if peer is publicly accessible
-    //       const url = new URL(request.url)
-    //       if (url.pathname === '/status') {
-    //         return new Response(JSON.stringify({ status: 'OK' }), {
-    //           status: 200,
-    //           headers: {
-    //             'Content-Type': 'application/json',
-    //             'Cache-Control': 'no-store',
-    //             'Access-Control-Allow-Origin': '*',
-    //           },
-    //         })
-    //       }
-    //     }
-    //     return new Response('Not a websocket request', { status: 400 })
-    //   },
-    // })
   }
 
   /** Handles the incoming connection and handshake from peers */
@@ -450,8 +427,8 @@ export class P2PNetwork {
   // Operators send a heartbeat message every 90s
   private initiateHeartbeat() {
     this.handleHeartbeat()
-    const username = process.env.USERNAME
-    const activeKey = process.env.ACTIVE_KEY
+    const username = process.env.USERNAME?.replaceAll('"', '')
+    const activeKey = process.env.ACTIVE_KEY?.replaceAll('"', '')
     if (!username || !activeKey) {
       return
     }

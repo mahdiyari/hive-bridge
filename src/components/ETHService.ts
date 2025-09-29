@@ -19,12 +19,12 @@ export class ETHService {
 
   /** Takes either wHIVE or wHBD contract address - Both contracts should be identical */
   constructor(contractAddress: string) {
-    if (!process.env.ETH_NODE) {
+    if (!process.env.ETH_NODE?.replaceAll('"', '')) {
       throw new Error('Need a valid ETH API node')
     }
     this.contractAddress = contractAddress
-    this.ethNode = <string>process.env.ETH_NODE
-    this.ethNode2 = process.env.ETH_NODE2
+    this.ethNode = <string>process.env.ETH_NODE?.replaceAll('"', '')
+    this.ethNode2 = process.env.ETH_NODE2?.replaceAll('"', '')
     const network = new ethers.Network('Sepolia', 11155111)
     this.provider = new ethers.JsonRpcProvider(this.ethNode, network, {
       staticNetwork: network,

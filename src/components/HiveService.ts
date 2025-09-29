@@ -5,7 +5,7 @@ import { ethers } from 'ethers'
 export class HiveService {
   private MIN_AMOUNT = 1
   private POLLING_INTERVAL = 5_000 // 5s
-  private TREASURY = process.env.TREASURY
+  private TREASURY = process.env.TREASURY?.replaceAll('"', '')
   private lastIrreversibleBlockNum = 0
   private event = new EventTarget()
   private nodeIndex = 0
@@ -15,7 +15,7 @@ export class HiveService {
 
   constructor(genesis: number) {
     this.genesisBlock = genesis
-    const nodes = process.env.HIVE_NODES || ''
+    const nodes = process.env.HIVE_NODES?.replaceAll('"', '') || ''
     this.nodes = nodes.split(',')
     config.node = this.nodes
     this.processHistory()

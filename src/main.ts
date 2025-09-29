@@ -10,12 +10,11 @@ import { hashWrapMessage } from './helpers/eth/hashWrapMessage'
 import { signKeccakHash } from './helpers/eth/signKeccakHash'
 import { configDotenv } from 'dotenv'
 
-configDotenv()
+configDotenv({ quiet: true })
 
 // TODO:
 // We might want to send signatures out periodically if there is a pending wrap/unwrap
 // P2P limit etc might need tuning
-// ETH connections "should" be fine but there was a node:http error without a fucking trace to where that error happened so watchout for that
 // We are still trusting Hive API nodes (the most likely attack vector I think)
 // Proxy ETH contract testing but should be simple
 
@@ -26,7 +25,7 @@ const HBD_ETH_CONTRACT = '0x180099e000B20AC13b91A7863a8210272B411f82'
 // Update this upon contract change while testing
 const HIVE_GENESIS = 95507645
 
-const TREASURY = process.env.TREASURY
+const TREASURY = process.env.TREASURY?.replaceAll('"', '')
 if (!TREASURY) {
   throw new Error('Missing TREASURY from .env')
 }
@@ -34,8 +33,8 @@ if (!TREASURY) {
 const port1 = 8080
 const knownPeers1 = [`localhost:8081`]
 
-const USERNAME = process.env.USERNAME
-const ACTIVE_KEY = process.env.ACTIVE_KEY
+const USERNAME = process.env.USERNAME?.replaceAll('"', '')
+const ACTIVE_KEY = process.env.ACTIVE_KEY?.replaceAll('"', '')
 let isOperator = false
 if (USERNAME && ACTIVE_KEY) {
   isOperator = true
@@ -158,7 +157,7 @@ const main = () => {
     }
   }
 
-  const port = Number(process.env.API_PORT) || 8000
+  // const port = Number(process.env.API_PORT) || 8000
   // app.listen({ port })
   // console.log(`API server listening on ${port}`)
 }

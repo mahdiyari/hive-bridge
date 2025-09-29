@@ -1,11 +1,11 @@
-import { bytesToHex } from '@noble/hashes/utils'
+import { bytesToHex } from '@noble/hashes/utils.js'
 import { configDotenv } from 'dotenv'
 import { ethers } from 'ethers'
 import { call, PublicKey } from 'hive-tx'
 
-configDotenv()
+configDotenv({ quiet: true })
 
-const TREASURY = process.env.TREASURY
+const TREASURY = process.env.TREASURY?.replaceAll('"', '')
 if (!TREASURY) {
   throw new Error('Missing treasury account name')
 }
@@ -42,11 +42,11 @@ class Operators {
   }
 
   public getOperatorsStatus() {
-    const temp: Record<string, 'MISSING' | 'OK'> = {}
+    const temp: Record<string, '-' | 'CONNECTED'> = {}
     this.operators.forEach((value) => {
       const lastSeen = Number(this.operatorsLastSeen.get(value)) || 0
       const status =
-        Date.now() - lastSeen > this.MISSING_TIMEOUT ? 'MISSING' : 'OK'
+        Date.now() - lastSeen > this.MISSING_TIMEOUT ? '-' : 'CONNECTED'
       temp[value] = status
     })
     return temp
