@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  hive-bridge:
+    image: mahdiyari/hive-bridge:0.0.1
+    container_name: hive-bridge
+    ports:
+      - "3018:3018"
+    env_file:
+      - .env
+    environment:
+      - ENV_VAR=production
+    restart: unless-stopped
