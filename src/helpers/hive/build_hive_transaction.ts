@@ -1,5 +1,5 @@
 import { call, Transaction } from 'hive-tx'
-import { hexToBytes } from '@noble/hashes/utils'
+import { hexToBytes } from '@noble/hashes/utils.js'
 import { getBlockNumFromTimestamp } from './get_block_num_from_timestamp'
 
 export const buildHiveTransfer = async (
