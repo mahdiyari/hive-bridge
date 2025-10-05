@@ -79,6 +79,7 @@ const main = () => {
   })
 
   hiveService.onTransfer(async (detail) => {
+    console.log(detail)
     const symbol = detail.amount.split(' ')[1]
     const ethAddress = detail.memo.substring(4)
     let hasMinted = true
@@ -101,6 +102,7 @@ const main = () => {
       blockNum,
       contractAddress
     )
+    console.log('add to pending wraps')
     // Add to the list of pendingWraps
     pendingWraps.addNewWrap(
       ethAddress,
@@ -116,6 +118,15 @@ const main = () => {
       const signature = await signKeccakHash(msgHash)
       pendingWraps.addSignature(msgHash, signature, USERNAME)
       p2pNetwork.sendSignature(USERNAME, msgHash, signature)
+      // TODO: should do this only if not enough sigs found
+      const myInterval = setInterval(() => {
+        const wrap = pendingWraps.getWrapByHash(msgHash)
+        if (!wrap || wrap?.signatures.length >= 2) {
+          clearInterval(myInterval)
+        } else {
+          p2pNetwork.sendSignature(USERNAME, msgHash, signature)
+        }
+      }, 10_000)
     }
   })
 
