@@ -2,7 +2,7 @@ import { call, Signature, Transaction } from 'hive-tx'
 import { operators } from './Operators'
 
 class PendingUnwraps {
-  private multisigTreshold = 1 // We should get this from the API
+  private multisigTreshold = 2 // We should get this from the API
   private unwraps: Map<string, Transaction> = new Map()
 
   constructor() {
