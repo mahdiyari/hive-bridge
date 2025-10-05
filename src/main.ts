@@ -18,9 +18,9 @@ configDotenv({ quiet: true })
 // We are still trusting Hive API nodes (the most likely attack vector I think)
 // Proxy ETH contract testing but should be simple
 
-const HIVE_ETH_CONTRACT = '0x216D8Ff7F1047FeEea2104D8051Ae4f2C2BA0578'
+const HIVE_ETH_CONTRACT = '0xaad1Ae20630991D477539A1abC438F3f4d430197'
 // const HIVE_ETH_CONTRACT = '0xdbDa07F0BcD6E241a7B892B6B1fE31488c13A5df'
-const HBD_ETH_CONTRACT = '0x180099e000B20AC13b91A7863a8210272B411f82'
+const HBD_ETH_CONTRACT = '0x7FFaDa633d2018Af1cf07D15002e5360C3e71855'
 
 // Update this upon contract change while testing
 const HIVE_GENESIS = 95507645
