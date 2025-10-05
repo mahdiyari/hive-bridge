@@ -9,6 +9,7 @@ import { pendingUnwraps } from './components/PendingUnwraps'
 import { hashWrapMessage } from './helpers/eth/hashWrapMessage'
 import { signKeccakHash } from './helpers/eth/signKeccakHash'
 import { configDotenv } from 'dotenv'
+import { sleep } from './helpers/general/sleep'
 
 configDotenv({ quiet: true })
 
@@ -44,8 +45,9 @@ if (USERNAME && ACTIVE_KEY) {
 // P2PNetwork to handle the p2p messaging
 // HiveService to read Hive transactions
 // ETHService to read ETH transactions
-const main = () => {
+const main = async () => {
   const p2pNetwork = new P2PNetwork()
+  await sleep(5000)
   const hiveService = new HiveService(HIVE_GENESIS)
   const whiveService = new ETHService(HIVE_ETH_CONTRACT)
   const whbdService = new ETHService(HBD_ETH_CONTRACT)
@@ -121,7 +123,7 @@ const main = () => {
       // TODO: should do this only if not enough sigs found
       const myInterval = setInterval(() => {
         const wrap = pendingWraps.getWrapByHash(msgHash)
-        if (!wrap || wrap?.signatures.length >= 2) {
+        if (!wrap || Date.now() - wrap?.timestamp > 300_000) {
           clearInterval(myInterval)
         } else {
           p2pNetwork.sendSignature(USERNAME, msgHash, signature)
