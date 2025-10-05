@@ -169,7 +169,7 @@ const main = async () => {
       pendingUnwraps.addSignature(USERNAME, trxHash, sig.customToString())
       const myInterval = setInterval(() => {
         const unwrap = pendingUnwraps.getUnwrap(trxHash)
-        if (!unwrap) {
+        if (unwrap) {
           p2pNetwork.sendHiveSignature(USERNAME, trxHash, sig.customToString())
         } else {
           clearInterval(myInterval)
