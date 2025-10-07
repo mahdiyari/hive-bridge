@@ -4,14 +4,14 @@
 cp example.env .env
 ```
 
-Development
-
-```sh
-deno run dev
+### option 1:
+```
+# node v22
+npm install
+npm run start
 ```
 
-Start
-
-```sh
-deno run start
+### option 2:
+```
+docker compose up -d
 ```
