@@ -3,7 +3,7 @@ services:
     image: mahdiyari/hive-bridge:0.0.1
     container_name: hive-bridge
     ports:
-      - "${DOCKER_PORT}:3018"
+      - ${P2P_PORT}
     env_file:
       - .env
     environment:
