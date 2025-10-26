@@ -1,18 +1,30 @@
 import { ethers } from 'ethers'
 import { operators } from './Operators'
-import { sleep } from '../helpers/general/sleep'
+import { sleep } from '../helpers/sleep'
+import { ChainServiceInstance } from '../helpers/types'
+import { p2pNetwork } from './p2p/P2PNetwork'
+import { REQUEST_WRAP_SIGNATURES } from './p2p/message/REQUEST_WRAP_SIGNATURES'
+import { WRAP_SIGNATURES } from './p2p/message/WRAP_SIGNATURES'
+import { ChainType } from './p2p/helpers/types'
+
+const USERNAME = process.env.USERNAME?.replaceAll('"', '')
+const ACTIVE_KEY = process.env.ACTIVE_KEY?.replaceAll('"', '')
 
 class PendingWraps {
   private pendingWraps: Map<
     string,
     {
-      message: {
+      data: {
+        type: ChainType
+        symbol: 'HIVE' | 'HBD'
         address: string
         amount: number
-        blockNum: number
+        trxId: string
+        opInTrx: number
         contract: string
+        username: string
       }
-      username: string
+      chainInstance: ChainServiceInstance
       signatures: string[]
       operators: string[]
       timestamp: number
@@ -23,40 +35,66 @@ class PendingWraps {
   private pendingWrapsByAddress: Map<string, string[]> = new Map()
   private pendingWrapsByUsername: Map<string, string[]> = new Map()
 
+  private cutoff = 7 * 24 * 60 * 60 * 1000 // 7 days in ms
+
   constructor() {
-    // Need to remove old pending wraps to prevent excess RAM usage
-    // Someone could spam small transfers and increase the size of pendingHiveWraps variable
-    // We should prevent < 1 HIVE/HBD wraps to mitigate this
-    // 14 days should be safe enough
-    const intervalTime = 1_800_000 // 30 minutes
-    const cutoff = 14 * 24 * 60 * 60 * 1000 // 14 days
     setInterval(() => {
-      const now = Date.now()
-      this.pendingWraps.forEach((value, key) => {
-        if (value.timestamp < now - cutoff) {
-          this.removePendingWrap(key)
-        }
-      })
-    }, intervalTime)
+      this.checkPendingWraps()
+    }, 15_000)
   }
 
-  public addNewWrap(
+  // Check and remove already minted pending wraps
+  private async checkPendingWraps() {
+    for (const [key, value] of this.pendingWraps) {
+      const minted = await value.chainInstance.hasMinted(
+        value.data.trxId,
+        value.data.opInTrx
+      )
+      await sleep(10)
+      if (minted) {
+        this.removePendingWrap(key)
+      } else {
+        // Need to remove old pending wraps to prevent excess RAM usage
+        // Someone could spam small transfers and increase the size of pendingHiveWraps variable
+        // We should prevent < 1 HIVE/HBD wraps to mitigate this
+        // 7 days should be safe enough
+        const now = Date.now()
+        if (value.timestamp < now - this.cutoff) {
+          this.removePendingWrap(key)
+        }
+        // Ask for signatures of the pending wrap if not enough signatures present
+        if (value.signatures.length < value.chainInstance.multisigThreshold) {
+          REQUEST_WRAP_SIGNATURES(key)
+          await sleep(50)
+        }
+      }
+    }
+  }
+
+  public async addNewWrap(
+    type: ChainType,
+    symbol: 'HIVE' | 'HBD',
+    chainInstance: ChainServiceInstance,
     address: string,
     amount: number,
-    blockNum: number,
-    contract: string,
+    trxId: string,
+    opInTrx: number,
     username: string,
     msgHash: string,
     timestamp: number
   ) {
     this.pendingWraps.set(msgHash, {
-      message: {
+      data: {
+        type,
+        symbol,
         address,
         amount,
-        blockNum,
-        contract,
+        trxId,
+        opInTrx,
+        contract: chainInstance.contractAddress,
+        username,
       },
-      username,
+      chainInstance,
       operators: [],
       signatures: [],
       timestamp,
@@ -71,6 +109,17 @@ class PendingWraps {
     } else {
       this.pendingWrapsByUsername.set(username, [msgHash])
     }
+    // If we are operator, sign and broadcast our signature
+    if (USERNAME && ACTIVE_KEY) {
+      const signature = await chainInstance.signMsgHash(msgHash)
+      await this.addSignature(msgHash, signature, USERNAME)
+      WRAP_SIGNATURES({
+        type,
+        msgHash,
+        operators: [USERNAME],
+        signatures: [signature],
+      })
+    }
   }
 
   /** Add a signature to the pending wrap */
@@ -78,7 +127,7 @@ class PendingWraps {
     msgHash: string,
     signature: string,
     operator: string,
-    retry = 1
+    retry = 0
   ) {
     const wrap = this.pendingWraps.get(msgHash)
     if (wrap) {
@@ -103,11 +152,12 @@ class PendingWraps {
       }
     } else {
       // Operators could process the Hive blocks faster than us and send signatures
-      // Wait and try again one more time
-      if (retry) {
+      // Wait and try again
+      if (retry < 10) {
         setTimeout(() => {
-          this.addSignature(msgHash, signature, operator, 0)
-        }, 30_000)
+          retry++
+          this.addSignature(msgHash, signature, operator, retry)
+        }, 5_000)
       }
     }
   }
@@ -142,28 +192,25 @@ class PendingWraps {
     const wrap = this.pendingWraps.get(msgHash)
     if (wrap) {
       const wrapsByUsername =
-        this.pendingWrapsByUsername.get(wrap.username) || []
+        this.pendingWrapsByUsername.get(wrap.data.username) || []
       const wrapsByAddress =
-        this.pendingWrapsByAddress.get(wrap.message.address) || []
-
+        this.pendingWrapsByAddress.get(wrap.data.address) || []
       if (wrapsByUsername?.length === 1) {
-        this.pendingWrapsByUsername.delete(wrap.username)
+        this.pendingWrapsByUsername.delete(wrap.data.username)
       } else {
         const temp: string[] = []
         delete wrapsByUsername[wrapsByUsername.indexOf(msgHash)]
         wrapsByUsername.forEach((v) => temp.push(v))
-        this.pendingWrapsByUsername.set(wrap.username, temp)
+        this.pendingWrapsByUsername.set(wrap.data.username, temp)
       }
-
       if (wrapsByAddress?.length === 1) {
-        this.pendingWrapsByAddress.delete(wrap.message.address)
+        this.pendingWrapsByAddress.delete(wrap.data.address)
       } else {
         const temp: string[] = []
         delete wrapsByAddress[wrapsByAddress.indexOf(msgHash)]
         wrapsByAddress.forEach((v) => temp.push(v))
-        this.pendingWrapsByAddress.set(wrap.message.address, temp)
+        this.pendingWrapsByAddress.set(wrap.data.address, temp)
       }
-
       this.pendingWraps.delete(msgHash)
     }
   }

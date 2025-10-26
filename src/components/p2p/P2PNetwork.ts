@@ -1,31 +1,32 @@
 import { randomUUID } from 'node:crypto'
-import { messageChecksum } from '../helpers/p2p/message_checksum'
-import { getMyIp } from '../helpers/general/get_my_ip'
-import { messageHash } from '../helpers/p2p/message_hash'
+import { messageChecksum } from './helpers/message_checksum'
+import { getMyIp } from '../../helpers/general/get_my_ip'
+import { messageHash } from './helpers/message_hash'
 import { isIPv4, isIPv6 } from 'node:net'
 import {
   EventDetail,
   FullMessage,
-  HelloAckMessage,
-  HelloMessage,
   Message,
   PeerMessageEvent,
-} from '../helpers/p2p/types'
-import { pendingWraps } from './PendingWraps'
-import { pendingUnwraps } from './PendingUnwraps'
-import { bytesToHex } from '@noble/hashes/utils.js'
-import { signHeartbeat, validateHeartbeat } from '../helpers/p2p/heartbeat'
-import { peers } from './Peers'
-import { operators } from './Operators'
-import { sleep } from '../helpers/general/sleep'
+} from './helpers/types'
+import { pendingWraps } from '../PendingWraps'
+import { pendingUnwraps } from '../PendingUnwraps'
+import { peers } from '../Peers'
+import { operators } from '../Operators'
+import { sleep } from '../../helpers/sleep'
 import express from 'express'
 import { createServer } from 'node:http'
 import { WebSocketServer, WebSocket } from 'ws'
-import { uuidValidate } from '../helpers/p2p/uuidValidate'
+import { uuidValidate } from './helpers/uuidValidate'
 import { ethers } from 'ethers'
-import { PrivateKey } from 'hive-tx'
+import { HELLO_ACK } from './message/HELLO_ACK'
+import { HELLO } from './message/HELLO'
+import { HEARTBEAT } from './message/HEARTBEAT'
+import { REQUEST_PEERS } from './message/REQUEST_PEERS'
+import { PEER_LIST } from './message/PEER_LIST'
+import { startListening } from './startListening'
 
-export class P2PNetwork {
+class P2PNetwork {
   private knownPeers: string[] = []
   // Will have double this number of peers connected (50% public + 50% private)
   private maxPeers = 5
@@ -37,11 +38,23 @@ export class P2PNetwork {
   /** It will be automatically saved as ipv4 or [ipv6] */
   private myIP: string = 'none'
   private event = new EventTarget()
+  private personalMessageTypes = [
+    'HELLO',
+    'HELLO_ACK',
+    'REQUEST_PEERS',
+    'PEER_LIST',
+    'REQUEST_WRAP_SIGNATURES',
+    'REQUEST_HIVE_SIGNATURES',
+  ]
 
   constructor() {
     this.knownPeers = process.env.PEERS?.replaceAll('"', '')?.split(',') || []
     this.port = Number(process.env.P2P_PORT?.replaceAll('"', '')) || 3018
     this.myId = randomUUID()
+  }
+
+  /** Start the P2P network */
+  public start() {
     this.startServer().then(() => {
       this.connectToKnownPeers()
       this.handlePeerList()
@@ -67,7 +80,7 @@ export class P2PNetwork {
   }
 
   /** Prepare and send the message to all peers except the exception -
-   * exception: The peer who originally sent this message to us -
+   * @param exception The peer who originally sent this message to us -
    * We don't want to send it back there again
    */
   public sendMessage(message: Message, exception?: string) {
@@ -76,50 +89,6 @@ export class P2PNetwork {
         this.wsSend(peer.ws, message)
       }
     }
-  }
-
-  /** Send the signature to all peers */
-  public sendSignature(operator: string, msgHash: string, signature: string) {
-    const wrap = pendingWraps.getWrapByHash(msgHash)
-    if (!wrap) {
-      return
-    }
-    this.sendMessage({
-      type: 'ETH_SIGNATURE',
-      data: {
-        operator,
-        message: {
-          address: wrap.message.address,
-          amount: wrap.message.amount,
-          blockNum: wrap.message.blockNum,
-          contract: wrap.message.contract,
-        },
-        signature,
-      },
-    })
-  }
-
-  /** Send a hive signature to all peers */
-  public sendHiveSignature(
-    operator: string,
-    ethTransactionHash: string,
-    signature: string
-  ) {
-    const digest = pendingUnwraps.getUnwrap(ethTransactionHash)?.digest().digest
-    if (!digest) {
-      return
-    }
-    this.sendMessage({
-      type: 'HIVE_SIGNATURE',
-      data: {
-        operator,
-        message: {
-          ethTransactionHash,
-          digest: bytesToHex(digest),
-        },
-        signature,
-      },
-    })
   }
 
   /** Get the public IP and start listening for incoming connections */
@@ -227,13 +196,7 @@ export class P2PNetwork {
         }
         // Validate and add new peer
         peers.addPeer(remoteId, ws, message.data.address, 'none')
-        const ackMsg: HelloAckMessage = {
-          type: 'HELLO_ACK',
-          data: {
-            peerId: this.myId,
-          },
-        }
-        this.wsSend(ws, ackMsg)
+        HELLO_ACK(ws, this.myId)
       } else if (remoteId && peers.getWS(remoteId)) {
         return this.handleRegularMessage(message, remoteId, ws)
       } else {
@@ -252,7 +215,7 @@ export class P2PNetwork {
   }
 
   /** Add timestamp and hash the message before sending to ws */
-  private wsSend = (ws: WebSocket, msg: Message | FullMessage) => {
+  public wsSend = (ws: WebSocket, msg: Message | FullMessage) => {
     if (ws.readyState === WebSocket.OPEN) {
       if ('hash' in msg) {
         // The message is already FullMessage and is a repeat
@@ -302,12 +265,7 @@ export class P2PNetwork {
       })
       this.event.dispatchEvent(messageEvent)
       // Repeat to other peers if not personal communication
-      if (
-        message.type !== 'HELLO' &&
-        message.type !== 'HELLO_ACK' &&
-        message.type !== 'REQUEST_PEERS' &&
-        message.type !== 'PEER_LIST'
-      ) {
+      if (!this.personalMessageTypes.includes(message.type)) {
         this.sendMessage(message, peerId)
       }
     } catch {
@@ -345,14 +303,7 @@ export class P2PNetwork {
             ws.close()
           }
         }, 5_000)
-        const helloMsg: HelloMessage = {
-          type: 'HELLO',
-          data: {
-            peerId: this.myId,
-            address: `${this.myIP}:${this.port}`,
-          },
-        }
-        this.wsSend(ws, helloMsg)
+        HELLO(ws, this.myId, this.myIP, this.port)
       }
       ws.onmessage = (event) => {
         const message = this.parseMessage(event.data.toString())
@@ -405,68 +356,18 @@ export class P2PNetwork {
     return parsedMessage
   }
 
-  // TODO: custom encoding of the message to lower network usage
-  // private encodeMsg = (msg: FullMessage) => {
-  // 	let encodedMsg = msg.hash + ';' + msg.timestamp + ';' + msg.type
-  // 	switch (msg.type) {
-  // 		case 'HELLO':
-  // 			encodedMsg += ';' + msg.data.peerId + ';' + msg.data.address
-  // 			break
-  // 		case 'HELLO_ACK':
-  // 			encodedMsg += ';' + msg.data.peerId
-  // 			break
-  // 		case 'PEER_LIST':
-  // 			encodedMsg += ';' + msg.data.peers.join(',')
-  // 			break
-  // 		default:
-  // 			break
-  // 	}
-  // }
-  // private decodeMsg = (msg: string) => {}
-
   // Operators send a heartbeat message every 90s
   private initiateHeartbeat() {
-    this.handleHeartbeat()
     const username = process.env.USERNAME?.replaceAll('"', '')
     const activeKey = process.env.ACTIVE_KEY?.replaceAll('"', '')
     if (!username || !activeKey) {
       return
     }
     setInterval(async () => {
-      const msg = {
-        operator: username,
-        peerId: this.myId,
-        timestamp: Date.now(),
-      }
-      const signature = signHeartbeat(msg, PrivateKey.from(activeKey))
-      console.log('sent heartbeat')
-      this.sendMessage({
-        type: 'HEARTBEAT',
-        data: {
-          ...msg,
-          signature,
-        },
-      })
+      HEARTBEAT(this.myId)
       // Set our own operator's lastSeen
       operators.setOperatorLastSeen(username, Date.now())
     }, 90_000)
-  }
-
-  private handleHeartbeat() {
-    this.event.addEventListener('peerMessage', async (e) => {
-      const pe = e as PeerMessageEvent
-      const msg = pe.detail.data
-      if (msg.type === 'HEARTBEAT') {
-        const valid = await validateHeartbeat(msg.data)
-        if (valid) {
-          // if heartbeat sender is the operator, set the operator name for that peer
-          peers.receivedHeartbeat(msg.data.peerId, msg.data.operator)
-          operators.setOperatorLastSeen(msg.data.operator, Date.now())
-        }
-        // Peer limit etc
-        // TODO
-      }
-    })
   }
 
   private checkPeers() {
@@ -488,7 +389,7 @@ export class P2PNetwork {
       })
     } else if (publicPeers.length < this.maxPeers) {
       // Discover and connect to more peers if possible
-      this.sendMessage({ type: 'REQUEST_PEERS' })
+      REQUEST_PEERS()
     }
   }
 
@@ -534,19 +435,16 @@ export class P2PNetwork {
         if (!ws) {
           return
         }
-        this.wsSend(ws, {
-          type: 'PEER_LIST',
-          data: {
-            peers: addresses,
-          },
-        })
+        PEER_LIST(ws, addresses)
       }
     })
   }
 }
 
 // AI generated function - seems to work fine
-/** Select a certain amount of unique numbers randomly from a range */
+/** Select a certain amount of unique numbers randomly from a range
+ * - used to remove some peers randomly
+ */
 function getRandomUniqueNumbers(
   start: number,
   end: number,
@@ -559,3 +457,6 @@ function getRandomUniqueNumbers(
   }
   return range.slice(0, count)
 }
+
+export const p2pNetwork = new P2PNetwork()
+startListening()

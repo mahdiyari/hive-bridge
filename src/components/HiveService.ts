@@ -1,8 +1,9 @@
 import { call, config } from 'hive-tx'
 import { TransferBody, TransferHistory } from '../helpers/hive/types'
 import { ethers } from 'ethers'
+import { sleep } from '../helpers/sleep'
 
-export class HiveService {
+class HiveService {
   private MIN_AMOUNT = 1
   private POLLING_INTERVAL = 5_000 // 5s
   private TREASURY = process.env.TREASURY?.replaceAll('"', '')
@@ -18,6 +19,10 @@ export class HiveService {
     const nodes = process.env.HIVE_NODES?.replaceAll('"', '') || ''
     this.nodes = nodes.split(',')
     config.node = this.nodes
+  }
+
+  /** Start HiveService */
+  public start() {
     this.processHistory()
   }
 
@@ -55,6 +60,8 @@ export class HiveService {
       const historyId = transfers[i][0]
       const blockNum = transfers[i][1].block
       const timestamp = new Date(transfers[i][1].timestamp + '.000Z').getTime()
+      const trxId = transfers[i][1].trx_id
+      const opInTrx = transfers[i][1].op_in_trx
       // We have already proccessed till lastHistoryId
       if (historyId <= this.lastHistoryId || blockNum < this.genesisBlock) {
         continue
@@ -73,7 +80,7 @@ export class HiveService {
           const ethAddress = opBody.memo.substring(4)
           if (ethers.isAddress(ethAddress)) {
             const customEvent = new CustomEvent('transfer', {
-              detail: { ...opBody, blockNum, timestamp },
+              detail: { ...opBody, blockNum, timestamp, trxId, opInTrx },
             })
             this.event.dispatchEvent(customEvent)
           }
@@ -100,3 +107,8 @@ export class HiveService {
     return <TransferHistory[]>result.result
   }
 }
+
+// Ignore the blocks before genesis
+const HIVE_GENESIS = Number(process.env.HIVE_GENESIS?.replaceAll('"', '') || 1)
+
+export const hiveService = new HiveService(HIVE_GENESIS)

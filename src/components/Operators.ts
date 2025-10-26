@@ -2,6 +2,8 @@ import { bytesToHex } from '@noble/hashes/utils.js'
 import { configDotenv } from 'dotenv'
 import { ethers } from 'ethers'
 import { call, PublicKey } from 'hive-tx'
+import { hiveService } from './HiveService'
+import { logger } from './logger'
 
 configDotenv({ quiet: true })
 
@@ -21,6 +23,7 @@ class Operators {
   // private operatorsStatus: Map<string, 'OK' | 'MISSING'> = new Map()
   /** <username, timestamp> */
   private operatorsLastSeen: Map<string, number> = new Map()
+  public hiveMultisigThreshold = 1
 
   constructor() {
     this.updateOperators()
@@ -59,7 +62,8 @@ class Operators {
   private updateOperators = async () => {
     const res = await call('condenser_api.get_accounts', [[TREASURY]])
     const active = res.result[0].active.account_auths
-    const temp = []
+    const newThreshold = Number(res.result[0].active.weight_threshold)
+    const temp: string[] = []
     for (let i = 0; i < active.length; i++) {
       const username = active[i][0]
       const pubKey = await this.getOperatorPublicActiveKeys(username)
@@ -73,7 +77,29 @@ class Operators {
       this.operatorKeys.set(username, pubKey)
       this.operatorAddresses.set(username, addresses)
     }
-    this.operators = temp
+    if (JSON.stringify(this.operators) !== JSON.stringify(temp)) {
+      const deletedOperators = this.operators.filter(
+        (item) => !temp.includes(item)
+      )
+      const addedOperators = temp.filter(
+        (item) => !this.operators.includes(item)
+      )
+      if (addedOperators.length > 0) {
+        logger.info(
+          `operators added to the treasury account: ${addedOperators}`
+        )
+      }
+      if (deletedOperators.length > 0) {
+        logger.info(
+          `operators removed from the treasury account: ${deletedOperators}`
+        )
+      }
+      this.operators = temp
+    }
+    if (newThreshold !== this.hiveMultisigThreshold) {
+      logger.info(`hiveMultisigThreshold=${newThreshold}`)
+      this.hiveMultisigThreshold = newThreshold
+    }
   }
 
   private getOperatorPublicActiveKeys = async (operator: string) => {

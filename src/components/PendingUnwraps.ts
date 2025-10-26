@@ -1,32 +1,43 @@
-import { call, Signature, Transaction } from 'hive-tx'
+import { call, PrivateKey, Signature, Transaction } from 'hive-tx'
 import { operators } from './Operators'
+import { logger } from './logger'
+import { p2pNetwork } from './p2p/P2PNetwork'
+import { REQUEST_HIVE_SIGNATURES } from './p2p/message/REQUEST_HIVE_SIGNATURES'
+import { HIVE_SIGNATURES } from './p2p/message/HIVE_SIGNATURES'
+
+const USERNAME = process.env.USERNAME?.replaceAll('"', '')
+const ACTIVE_KEY = process.env.ACTIVE_KEY?.replaceAll('"', '')
 
 class PendingUnwraps {
-  private multisigTreshold = 2 // We should get this from the API
-  private unwraps: Map<string, Transaction> = new Map()
+  private unwraps: Map<string, { operators: string[]; trx: Transaction }> =
+    new Map()
 
   constructor() {
     setInterval(() => {
-      this.unwraps.forEach(async (trx, ethTrxHash) => {
+      this.unwraps.forEach(async ({ trx }, trxHash) => {
         if (trx.signedTransaction) {
           const signatures = trx.signedTransaction.signatures
-          if (signatures.length >= this.multisigTreshold) {
+          if (signatures.length >= operators.hiveMultisigThreshold) {
             try {
-              const res = await trx.broadcast()
-              console.log(res)
+              await trx.broadcast()
+              this.unwraps.delete(trxHash)
+              logger.debug('Successful unwrap:', trx.transaction.operations[0])
             } catch (e) {
-              console.log(e)
-              // Should fail due to duplicate transaction error if broadcasted by other peers
+              // hive-tx will catch and ignore the duplicate transaction error
+              // we might enconter other errors here so log them for now
+              logger.warning('Not a big deal I guess:', e)
             }
-            this.unwraps.delete(ethTrxHash)
+          } else {
+            // Not enough signatures so request more
+            REQUEST_HIVE_SIGNATURES(trxHash)
           }
         }
       })
-    }, 5_000)
+    }, 10_000)
 
     // Check and remove already unwrapped trxs
     setInterval(async () => {
-      for (const [k, trx] of this.unwraps) {
+      for (const [k, { trx }] of this.unwraps) {
         const res = await call('condenser_api.get_transaction', [
           trx.digest().txId,
         ])
@@ -38,28 +49,57 @@ class PendingUnwraps {
     }, 20_000)
   }
 
-  public async addUnwrap(ethTrxHash: string, trx: Transaction) {
-    // Skip already broadcasted transactions
-    const res = await call('condenser_api.get_transaction', [trx.digest().txId])
-    if (!res?.result) {
-      this.unwraps.set(ethTrxHash, trx)
+  public async addUnwrap(trxHash: string, trx: Transaction) {
+    try {
+      // Skip already broadcasted transactions
+      const res = await call('condenser_api.get_transaction', [
+        trx.digest().txId,
+      ])
+      if (!res?.result) {
+        this.unwraps.set(trxHash, { trx, operators: [] })
+        // If we are operator, sign and broadcast our signature
+        if (ACTIVE_KEY && USERNAME) {
+          const privateKey = PrivateKey.from(ACTIVE_KEY)
+          const sig = privateKey.sign(trx.digest().digest)
+          pendingUnwraps.addSignature(USERNAME, trxHash, sig.customToString())
+          HIVE_SIGNATURES({
+            trxHash,
+            operators: [USERNAME],
+            signatures: [sig.customToString()],
+          })
+        }
+      }
+    } catch (e) {
+      // As long as retry works it should be fine
+      logger.error('Something went wrong. Retrying:', e)
+      this.addUnwrap(trxHash, trx)
     }
   }
 
-  public getUnwrap(ethTrxHash: string) {
-    return this.unwraps.get(ethTrxHash)
+  public getUnwrap(trxHash: string) {
+    return this.unwraps.get(trxHash)
   }
 
-  /** Verify the signature and add to the trx */
+  /**
+   * Verify the signature and add to the Hive transaction
+   * @param operator Username of the signer
+   * @param trxHash Transaction hash of the burn/unwrap
+   * @param signature Hive signature
+   * @param retry Optional: automatically incerements for each retry
+   */
   public async addSignature(
     operator: string,
-    ethTrxHash: string,
+    trxHash: string,
     signature: string,
-    retry = 1
+    retry = 0
   ) {
     try {
-      const trx = this.unwraps.get(ethTrxHash)
-      if (trx) {
+      const unwrap = this.unwraps.get(trxHash)
+      if (unwrap) {
+        if (unwrap.operators.includes(operator)) {
+          return
+        }
+        const { trx } = unwrap
         const sig = Signature.from(signature)
         const recoveredKey = sig.getPublicKey(trx.digest().digest).toString()
         const operatorKey = operators.getOperatorKeys(operator)
@@ -69,19 +109,22 @@ class PendingUnwraps {
         for (let i = 0; i < operatorKey.length; i++) {
           if (recoveredKey === operatorKey[i]) {
             trx.addSignature(signature)
+            unwrap.operators.push(operator)
             break
           }
         }
       } else {
-        if (retry) {
-          // We might have not synced the transaction yet, wait and try one more time
+        if (retry < 10) {
+          retry++
+          // We might have not synced the transaction yet, wait and try again
           setTimeout(() => {
-            this.addSignature(operator, ethTrxHash, signature, 0)
-          }, 30_000)
+            this.addSignature(operator, trxHash, signature, retry)
+          }, 5_000)
         }
       }
-    } catch {
+    } catch (e) {
       // Ignore badly formatted signatures
+      logger.debug('Got a badly formatted signature?', e)
     }
   }
 

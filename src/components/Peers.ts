@@ -1,5 +1,5 @@
-import { checkPeerStatus } from '../helpers/p2p/check_peer_status'
-import { FullMessage, Peer } from '../helpers/p2p/types'
+import { checkPeerStatus } from './p2p/helpers/check_peer_status'
+import { FullMessage, Peer } from './p2p/helpers/types'
 import { WebSocket } from 'ws'
 
 class Peers {

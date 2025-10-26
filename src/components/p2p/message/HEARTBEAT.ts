@@ -1,18 +1,36 @@
 import { PrivateKey, Signature } from 'hive-tx'
-import { operators } from '../../components/Operators'
-import { sha256String } from './message_hash'
+import { sha256String } from '../helpers/message_hash'
+import { operators } from '../../Operators'
+import { p2pNetwork } from '../P2PNetwork'
 
 interface Heartbeat {
   operator: string
   peerId: string
   timestamp: number
 }
-
 interface SignedHeartbeat extends Heartbeat {
   signature: string
 }
 
-export const signHeartbeat = (msg: Heartbeat, key: PrivateKey) => {
+export const HEARTBEAT = (myId: string) => {
+  const username = <string>process.env.USERNAME?.replaceAll('"', '')
+  const activeKey = <string>process.env.ACTIVE_KEY?.replaceAll('"', '')
+  const msg = {
+    operator: username,
+    peerId: myId,
+    timestamp: Date.now(),
+  }
+  const signature = signHeartbeat(msg, PrivateKey.from(activeKey))
+  p2pNetwork.sendMessage({
+    type: 'HEARTBEAT',
+    data: {
+      ...msg,
+      signature,
+    },
+  })
+}
+
+const signHeartbeat = (msg: Heartbeat, key: PrivateKey) => {
   const hash = <Uint8Array>sha256String(JSON.stringify(msg), false)
   return key.sign(hash).customToString()
 }
