@@ -1,16 +1,12 @@
 import { call, config as configHiveTx } from 'hive-tx'
 import { TransferBody, TransferHistory } from '@/types/hive.types'
-import { ethers } from 'ethers'
 import { config } from '@/config'
-import { ChainName, ChainService } from '@/types/chain.types'
 
 export class HiveService {
   private MIN_AMOUNT = 1
   private POLLING_INTERVAL = 5_000 // 5s
   private TREASURY = config.hive.treasury
-  private lastIrreversibleBlockNum = 0
   private event = new EventTarget()
-  private nodeIndex = 0
   private nodes = config.hive.nodes
   private lastHistoryId = 0
   private genesisBlock
