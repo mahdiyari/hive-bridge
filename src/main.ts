@@ -1,16 +1,14 @@
-import { PrivateKey } from 'hive-tx'
-import { pendingWraps } from './components/PendingWraps'
-import { buildHiveTransfer } from './helpers/hive/build_hive_transaction'
-import { pendingUnwraps } from './components/PendingUnwraps'
-import { configDotenv } from 'dotenv'
-import { sleep } from './helpers/sleep'
-import { p2pNetwork } from './components/p2p/P2PNetwork'
-import { hiveService } from './components/HiveService'
-import { ChainServiceInstance } from './helpers/types'
-import { logger } from './components/logger'
-import { erc20HBD, erc20HIVE } from './components/chains/ethereum/ETHService'
-
-configDotenv({ quiet: true })
+import { pendingWraps } from '@/Wraps'
+import { buildHiveTransfer } from '@/utils/hive.utils'
+import { pendingUnwraps } from '@/Unwraps'
+import { sleep } from '@/utils/sleep'
+import { p2pNetwork } from '@/network/P2PNetwork'
+import { ChainService } from '@/types/chain.types'
+import { logger } from '@/utils/logger'
+import { config } from '@/config'
+import { addedChainServices } from './blockchain'
+import { HiveService } from './blockchain/hive/HiveService'
+import { operators } from './network/Operators'
 
 // TODO:
 // We might want to send signatures out periodically if there is a pending wrap/unwrap
@@ -18,22 +16,27 @@ configDotenv({ quiet: true })
 // We are still trusting Hive API nodes (the most likely attack vector I think)
 // Proxy ETH contract testing but should be simple
 
-const TREASURY = process.env.TREASURY?.replaceAll('"', '')
-if (!TREASURY) {
-  throw new Error('Missing TREASURY from .env')
-}
+const TREASURY = config.hive.treasury
 
 p2pNetwork.start()
-// wait for p2p network
+// Wait for p2p network
 await sleep(5000)
+// Wait for operators list to propogate
+while (operators.size === 0) {
+  await sleep(100)
+}
+// Ignore the blocks before genesis
+const HIVE_GENESIS = config.hive.genesis
+const hiveService = new HiveService(HIVE_GENESIS)
 hiveService.start()
-erc20HIVE.start()
-erc20HBD.start()
 
 const addChainService = (
-  chainService: ChainServiceInstance,
+  chainService: ChainService,
   contractSymbol: 'HIVE' | 'HBD'
 ) => {
+  // Start the service
+  chainService.start()
+
   hiveService.onTransfer(async (detail) => {
     const symbol = detail.amount.split(' ')[1]
     if (symbol !== contractSymbol) {
@@ -42,7 +45,16 @@ const addChainService = (
     logger.debug(
       `Detected Hive transfer ${detail.from}:${detail.amount}@${detail.timestamp}`
     )
-    const ethAddress = detail.memo.substring(4)
+    const chain = detail.memo.split(':')[0]
+    // Memo must start with chain name e.g. 'ETH:0x123...'
+    if (chain !== chainService.name) {
+      return
+    }
+    const address = detail.memo.split(':')[1]
+    // Validate the provided address
+    if (!chainService.isAddress(address)) {
+      return
+    }
     const { trxId, opInTrx } = detail
     const hasMinted = await chainService.hasMinted(trxId, opInTrx)
     // Convert decimal into integer
@@ -50,13 +62,13 @@ const addChainService = (
     if (hasMinted) {
       return
     }
-    const msgHash = chainService.hashWrapMsg(ethAddress, amount, trxId, opInTrx)
-    logger.debug(`Add to pendingWraps ${ethAddress}:${amount}:${trxId}`)
+    const msgHash = chainService.hashWrapMsg(address, amount, trxId, opInTrx)
+    logger.debug(`Add to pendingWraps ${address}:${amount}:${trxId}`)
     pendingWraps.addNewWrap(
-      chainService.type,
+      chainService.name,
       contractSymbol,
       chainService,
-      ethAddress,
+      address,
       amount,
       trxId,
       opInTrx,
@@ -71,7 +83,7 @@ const addChainService = (
     const amount = `${(Number(res.amount) / 1000).toFixed(3)} ${
       chainService.symbol
     }`
-    const memo = `${chainService.type}:${res.trx}`
+    const memo = `${chainService.name}:${res.trx}`
     const trx = await buildHiveTransfer(
       TREASURY,
       res.username,
@@ -83,5 +95,6 @@ const addChainService = (
   })
 }
 
-addChainService(erc20HIVE, 'HIVE')
-addChainService(erc20HBD, 'HBD')
+addedChainServices.forEach((item) => {
+  addChainService(item, item.symbol)
+})
