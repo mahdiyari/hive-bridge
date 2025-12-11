@@ -2,11 +2,12 @@ services:
   hive-bridge:
     image: mahdiyari/hive-bridge:0.0.2
     container_name: hive-bridge
+    init: true
+    tty: true
     ports:
       - "${P2P_PORT}:${P2P_PORT}"
     env_file:
       - .env
     environment:
       - ENV_VAR=production
-      - LOG_LEVEL=${LOG_LEVEL:-info}
     restart: unless-stopped
