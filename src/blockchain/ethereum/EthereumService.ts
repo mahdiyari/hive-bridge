@@ -7,6 +7,8 @@ import { ChainName } from '@/types/chain.types'
 import { config } from '@/config'
 import { bytesToHex } from '@noble/hashes/utils.js'
 
+const BadData = () => new Error('Bad data received from contract.')
+
 export class EthereumService implements ChainService {
   // Wait 12 blocks before doing an unwrap
   private CONFIRMATIONS = 12
@@ -68,13 +70,9 @@ export class EthereumService implements ChainService {
   }
 
   /** Every pair (trx_id, op_in_trx) can mint once */
-  async hasMinted(
-    trxId: string,
-    opInTrx: number,
-    contract = this.contract
-  ): Promise<boolean> {
+  async hasMinted(trxId: string, opInTrx: number): Promise<boolean> {
     try {
-      const result = await contract.hasMinted(trxId, opInTrx)
+      const result = await this.contract.hasMinted(trxId, opInTrx)
       if (typeof result !== 'boolean') {
         throw new Error(`Expected boolean but got ${result}`)
       }
@@ -90,42 +88,20 @@ export class EthereumService implements ChainService {
   /** Hash wrap;address;amount;trx_id;op_in_trx;contract */
   hashWrapMsg(address: string, amount: number, trxId: string, opInTrx: number) {
     // https://github.com/mahdiyari/hive-bridge-eth/blob/0294e02ef8f621ab48e8d7ecf7ac3d88254dd5ed/contracts/WrappedHive.sol#L283
-    return ethers.keccak256(
-      ethers.solidityPacked(
-        [
-          'string',
-          'string',
-          'address',
-          'string',
-          'uint256',
-          'string',
-          'string',
-          'string',
-          'uint32',
-          'string',
-          'address',
-        ],
-        [
-          'wrap',
-          ';',
-          address,
-          ';',
-          amount,
-          ';',
-          trxId,
-          ';',
-          opInTrx,
-          ';',
-          this.contractAddress,
-        ]
-      )
+    return hasher(
+      ['string', 'wrap'],
+      ['address', address],
+      ['uint256', amount],
+      ['string', trxId],
+      ['uint32', opInTrx],
+      ['address', this.contractAddress]
     )
   }
 
   /** Sign a message hash by the active key of operator
    * @returns String serialized signature (65 characters)
    */
-  async signMsgHash(msgHash: `0x${string}`) {
+  async signMsgHash(msgHash: string) {
     const ACTIVE_KEY = config.hive.operator.activeKey
     if (!ACTIVE_KEY) {
       throw new Error('No ACTIVE_KEY found in .env but signMsgHash was called.')
@@ -142,6 +118,106 @@ export class EthereumService implements ChainService {
     const pkey = PublicKey.from(publicKey)
     const hexPubKey = '0x' + bytesToHex(pkey.key)
     return ethers.computeAddress(hexPubKey)
+  }
+
+  async hashUpdateMultisigThresholdMsg(newThreshold: number, nonce?: number) {
+    // updateMultisigThreshold;{newThreshold};{nonceUpdateThreshold};{contract}
+    if (!nonce) {
+      nonce = await this.contract.nonceUpdateThreshold()
+    }
+    if (!nonce || typeof nonce !== 'number') {
+      throw BadData()
+    }
+    return hasher(
+      ['string', 'updateMultisigThreshold'],
+      ['uint8', newThreshold],
+      ['uint256', nonce],
+      ['address', this.contractAddress]
+    )
+  }
+  async hashAddSignerMsg(username: string, address: string, nonce?: number) {
+    // addSigner;{addr};{username};{nonceAddSigner};{contract}
+    if (!nonce) {
+      nonce = await this.contract.nonceAddSigner()
+    }
+    if (!nonce || typeof nonce !== 'number') {
+      throw BadData()
+    }
+    return hasher(
+      ['string', 'addSigner'],
+      ['address', address],
+      ['string', username],
+      ['uint256', nonce],
+      ['address', this.contractAddress]
+    )
+  }
+  async hashRemoveSignerMsg(username: string, nonce?: number) {
+    // removeSigner;{addr};{nonceRemoveSigner};{contract}
+    if (!nonce) {
+      nonce = await this.contract.nonceRemoveSigner()
+    }
+    if (!nonce || typeof nonce !== 'number') {
+      throw BadData()
+    }
+    // Because we derive the address from the active key, the operator might
+    // change the key and then the saved address won't match the active key
+    // so we get the saved address in order to remove that address
+    const address = await this.getOperatorAddress(username)
+    if (!address) {
+      throw BadData()
+    }
+    return hasher(
+      ['string', 'removeSigner'],
+      ['address', address],
+      ['uint256', nonce],
+      ['address', this.contractAddress]
+    )
+  }
+  async hashPauseMsg(nonce?: number) {
+    // pause;{noncePause};{contract}
+    if (!nonce) {
+      nonce = await this.contract.noncePause()
+    }
+    if (!nonce || typeof nonce !== 'number') {
+      throw BadData()
+    }
+    return hasher(
+      ['string', 'pause'],
+      ['uint256', nonce],
+      ['address', this.contractAddress]
+    )
+  }
+  async hashUnPauseMsg(nonce?: number) {
+    // unpause;{nonceUnpause};{contract}
+    if (!nonce) {
+      nonce = await this.contract.nonceUnpause()
+    }
+    if (!nonce || typeof nonce !== 'number') {
+      throw BadData()
+    }
+    return hasher(
+      ['string', 'unpause'],
+      ['uint256', nonce],
+      ['address', this.contractAddress]
+    )
+  }
+
+  recoverAddress(msgHash: string, signature: string) {
+    return ethers.recoverAddress(msgHash, signature)
+  }
+
+  /** Return the added address of an operator from their username */
+  private async getOperatorAddress(username: string): Promise<string | null> {
+    const signers = await this.contract.getAllSigners()
+    if (!signers) {
+      return null
+    }
+    for (const signer of signers) {
+      if (signer[0] === username) {
+        return signer[1]
+      }
+    }
+    return null
   }
 
   /** Call periodically to get the current multiSigThreshold from the contract */
@@ -191,4 +267,22 @@ export class EthereumService implements ChainService {
       this.lastPolledBlock = safeBlock
     }
   }
+}
+
+/**
+ * Keccak256 hash the inputs with added ; delimiter in between
+ * - e.g. hasher(['address', '0x123'], ['uint256', 67])
+ */
+const hasher = (...typeValuePairs: [string, string | number][]) => {
+  const types: string[] = []
+  const values: Array<string | number> = []
+  typeValuePairs.forEach(([type, value], index) => {
+    types.push(type)
+    values.push(value)
+    if (index < typeValuePairs.length - 1) {
+      types.push('string')
+      values.push(';')
+    }
+  })
+  return ethers.keccak256(ethers.solidityPacked(types, values))
 }
