@@ -29,6 +29,9 @@ export class HiveService {
     })
   }
 
+  public signGovernanceMessage() {}
+
+  // TODO: proper error handling
   private async processHistory(count = 1000) {
     let transfers = await this.getTransferHistory(-1, count)
     let len = transfers.length
@@ -66,19 +69,10 @@ export class HiveService {
         // Outgoing transfers
       }
       if (opBody.to === this.TREASURY) {
-        const asset = opBody.amount.split(' ')
-        // Accept only amounts >= MIN_AMOUNT HIVE/HBD
-        const memoSplit = opBody.memo.split(':')
-        if (memoSplit.length !== 2) {
-          continue
-        }
-        // Validate amount then dispatch a custom event for onTransfer()
-        if (Number(asset[0]) >= this.MIN_AMOUNT) {
-          const customEvent = new CustomEvent('transfer', {
-            detail: { ...opBody, blockNum, timestamp, trxId, opInTrx },
-          })
-          this.event.dispatchEvent(customEvent)
-        }
+        const customEvent = new CustomEvent('transfer', {
+          detail: { ...opBody, blockNum, timestamp, trxId, opInTrx },
+        })
+        this.event.dispatchEvent(customEvent)
       }
     }
     this.lastHistoryId = transfers[transfers.length - 1][0]
@@ -98,6 +92,6 @@ export class HiveService {
       count,
       4,
     ])
-    return <TransferHistory[]>result.result
+    return <TransferHistory[]>result.result || []
   }
 }
