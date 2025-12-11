@@ -106,3 +106,32 @@ const getBlockTimestamp = async (blockNum: number) => {
     return 0
   }
 }
+
+export const getAccount = async (username: string) => {
+  try {
+    const result = await call('condenser_api.get_accounts', [[username]])
+    if (result?.result && result.result[0]) {
+      return result.result[0] as {
+        active: {
+          account_auths: [string, number][]
+          key_auths: [string, number][]
+          weight_threshold: number
+        }
+        memo_key: string
+      }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+export const getPublicActiveKeys = async (username: string) => {
+  const res = await call('condenser_api.get_accounts', [[username]])
+  const active = res.result[0].active.key_auths
+  const pubKeys: string[] = []
+  for (let i = 0; i < active.length; i++) {
+    pubKeys.push(active[i][0])
+  }
+  return pubKeys
+}
