@@ -9,6 +9,7 @@ import { config } from '@/config'
 import { addedChainServices } from './blockchain'
 import { HiveService } from './blockchain/hive/HiveService'
 import { operators } from './network/Operators'
+import { Governance } from './governance/governance'
 
 // TODO:
 // We might want to send signatures out periodically if there is a pending wrap/unwrap
@@ -30,6 +31,12 @@ const HIVE_GENESIS = config.hive.genesis
 const hiveService = new HiveService(HIVE_GENESIS)
 hiveService.start()
 
+// Initialize governance system
+const governance = new Governance(hiveService)
+
+// Check if bridge is paused before processing transfers
+const shouldProcessTransfer = () => !governance.isPaused()
+
 const addChainService = (
   chainService: ChainService,
   contractSymbol: 'HIVE' | 'HBD'
@@ -38,6 +45,12 @@ const addChainService = (
   chainService.start()
 
   hiveService.onTransfer(async (detail) => {
+    // Check if bridge is paused
+    if (!shouldProcessTransfer()) {
+      logger.debug('Bridge is paused, ignoring transfer')
+      return
+    }
+
     const symbol = detail.amount.split(' ')[1]
     if (symbol !== contractSymbol) {
       return
