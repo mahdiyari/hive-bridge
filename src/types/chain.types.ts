@@ -1,14 +1,10 @@
 /**
- * All blockchain services (except Hive) must satisfy this interface
+ * All blockchain services (except HiveService) must satisfy this interface
  */
 export interface ChainService {
   start(): void
   onUnwrap(cb: unwrapCallback): void
-  hasMinted(
-    trxId: string,
-    opInTrx: number,
-    contractInstance?: any
-  ): Promise<boolean>
+  hasMinted(trxId: string, opInTrx: number): Promise<boolean>
   /** @argument amount Amount without decimals i.e. "1.123 HIVE" => 1123 */
   hashWrapMsg(
     address: string,
@@ -17,8 +13,14 @@ export interface ChainService {
     opInTrx: number
   ): string
   signMsgHash(msgHash: string): Promise<string>
-  isAddress: (address: string) => boolean
-  toAddress: (publicKey: string) => string
+  isAddress(address: string): boolean
+  toAddress(publicKey: string): string
+  hashUpdateMultisigThresholdMsg(newThreshold: number): Promise<string>
+  hashAddSignerMsg(username: string, address: string): Promise<string>
+  hashRemoveSignerMsg(username: string): Promise<string>
+  hashPauseMsg(): Promise<string>
+  hashUnPauseMsg(): Promise<string>
+  recoverAddress(msgHash: string, signature: string): string
   contractAddress: string
   multisigThreshold: number
   name: ChainName
