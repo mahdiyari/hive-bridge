@@ -3,6 +3,7 @@ import { ethers } from 'ethers'
 import { call, PublicKey } from 'hive-tx'
 import { logger } from '../utils/logger'
 import { config } from '@/config'
+import { getPublicActiveKeys } from '@/utils/hive.utils'
 
 const TREASURY = config.hive.treasury
 const operatorTimeout = 30_000
@@ -68,16 +69,6 @@ const updateOperators = async () => {
     logger.info(`hiveMultisigThreshold=${newThreshold}`)
     hiveMultisigThreshold = newThreshold
   }
-}
-
-const getPublicActiveKeys = async (username: string) => {
-  const res = await call('condenser_api.get_accounts', [[username]])
-  const active = res.result[0].active.key_auths
-  const pubKeys: string[] = []
-  for (let i = 0; i < active.length; i++) {
-    pubKeys.push(active[i][0])
-  }
-  return pubKeys
 }
 
 // Update operators list every 5min
