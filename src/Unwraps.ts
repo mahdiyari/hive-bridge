@@ -1,4 +1,4 @@
-import { call, PrivateKey, Signature, Transaction } from 'hive-tx'
+import { callRPC, PrivateKey, Signature, Transaction } from 'hive-tx'
 import { hiveMultisigThreshold, operators } from '@/network/Operators'
 import { logger } from '@/utils/logger'
 import { config } from '@/config'
@@ -19,9 +19,13 @@ class Unwrap {
   }
 
   public addOperator(operator: string) {
-    if (!this.operators.includes(operator)) {
+    if (!this.hasOperator(operator)) {
       this.operators.push(operator)
     }
+  }
+
+  public hasOperator(operator: string): boolean {
+    return this.operators.includes(operator)
   }
 
   public hasEnoughSignatures(threshold: number): boolean {
@@ -41,7 +45,7 @@ class Unwraps {
             this.unwraps.delete(trxHash)
             logger.debug(
               'Successful unwrap:',
-              unwrap.trx.transaction.operations[0]
+              unwrap.trx.transaction?.operations[0]
             )
           } catch (e) {
             // hive-tx will catch and ignore the duplicate transaction error
@@ -58,10 +62,10 @@ class Unwraps {
     // Check and remove already unwrapped trxs
     setInterval(async () => {
       for (const [k, { trx }] of this.unwraps) {
-        const res = await call('condenser_api.get_transaction', [
+        const res = await callRPC('condenser_api.get_transaction', [
           trx.digest().txId,
         ])
-        if (!res?.result) {
+        if (!res) {
           continue
         }
         this.unwraps.delete(k)
@@ -72,10 +76,10 @@ class Unwraps {
   public async addUnwrap(trxHash: string, trx: Transaction) {
     try {
       // Skip already broadcasted transactions
-      const res = await call('condenser_api.get_transaction', [
+      const res = await callRPC('condenser_api.get_transaction', [
         trx.digest().txId,
       ])
-      if (!res?.result) {
+      if (!res) {
         const unwrap = new Unwrap(trx)
         this.unwraps.set(trxHash, unwrap)
         // If we are operator, sign and broadcast our signature
@@ -106,7 +110,7 @@ class Unwraps {
    * @param operator Username of the signer
    * @param trxHash Transaction hash of the burn/unwrap
    * @param signature Hive signature
-   * @param retry Optional: automatically incerements for each retry
+   * @param retry Optional: automatically increments for each retry
    */
   public async addSignature(
     operator: string,
@@ -117,7 +121,7 @@ class Unwraps {
     try {
       const unwrap = this.unwraps.get(trxHash)
       if (unwrap) {
-        if (unwrap.operators.includes(operator)) {
+        if (unwrap.hasOperator(operator)) {
           return
         }
         const { trx } = unwrap
