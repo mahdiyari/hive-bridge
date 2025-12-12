@@ -60,10 +60,15 @@ class Wrap {
       this.signatures.push(signature)
     }
   }
+
   public addOperator(operator: string) {
-    if (!this.operators.includes(operator)) {
+    if (!this.hasOperator(operator)) {
       this.operators.push(operator)
     }
+  }
+
+  public hasOperator(operator: string): boolean {
+    return this.operators.includes(operator)
   }
 }
 
@@ -161,7 +166,14 @@ class Wraps {
     }
   }
 
-  /** Add a signature to the pending wrap */
+  /**
+   * Add a signature to the pending wrap after verification
+   * Verifies the signature matches the operator's public key
+   * @param msgHash - Hash of the wrap message
+   * @param signature - Operator's signature
+   * @param operator - Operator username
+   * @param retry - Retry counter for async race conditions
+   */
   public async addSignature(
     msgHash: string,
     signature: string,
@@ -170,7 +182,7 @@ class Wraps {
   ) {
     const wrap = this.pendingWraps.get(msgHash)
     if (wrap) {
-      if (wrap.operators.includes(operator)) {
+      if (wrap.hasOperator(operator)) {
         return
       }
       const recoveredAddress = ethers.recoverAddress(msgHash, signature)
@@ -184,8 +196,8 @@ class Wraps {
         return
       }
       if (address === recoveredAddress) {
-        wrap.signatures.push(signature)
-        wrap.operators.push(operator)
+        wrap.addSignature(signature)
+        wrap.addOperator(operator)
       }
     } else {
       // Operators could process the Hive blocks faster than us and send signatures
