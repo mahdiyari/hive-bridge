@@ -21,11 +21,13 @@ import { API } from './API'
 import { messageList } from './messageList'
 
 class P2PNetwork {
-  private heartbeatInterval = 20_000
+  private heartbeatInterval = config.network.p2p.heartbeatInterval
   private knownPeers: string[] = []
   // Will have double this number of peers connected (50% public + 50% private)
-  private maxPeers = 5
-  private messageRateLimit = 10 // per second
+  private maxPeers = config.network.p2p.maxPeers
+  private messageRateLimit = config.network.p2p.messageRateLimit
+  private handshakeTimeout = config.network.p2p.handshakeTimeout
+  private peerCheckInterval = config.network.p2p.peerCheckInterval
   private messagesInLastSecond: Map<string, number> = new Map()
   private port: number
   /** Randomly generated uuidv4 */
@@ -63,7 +65,7 @@ class P2PNetwork {
     setInterval(() => {
       this.connectToKnownPeers()
       this.checkPeers()
-    }, 60_000)
+    }, this.peerCheckInterval)
   }
 
   /** Receive messages from the P2P network */
@@ -115,12 +117,12 @@ class P2PNetwork {
   /** Handles the incoming connection and handshake from peers */
   private handleIncomingConnection(ws: WebSocket) {
     let remoteId: string | undefined
-    // timeout after 5 seconds if not handshaked
+    // Timeout if not handshaked
     setTimeout(() => {
       if (!remoteId) {
         ws.close()
       }
-    }, 5_000)
+    }, this.handshakeTimeout)
 
     ws.onmessage = (event) => {
       const message = this.parseMessage(event.data.toString())
@@ -255,12 +257,12 @@ class P2PNetwork {
 
       // Send HELLO onOpen
       ws.onopen = () => {
-        // Close the connection after 5s if not handshaked
+        // Close the connection if not handshaked
         setTimeout(() => {
           if (!remoteId) {
             ws.close()
           }
-        }, 5_000)
+        }, this.handshakeTimeout)
         messageList.HELLO(ws, this.myId, this.myIP, this.port)
       }
       ws.onmessage = (event) => {
@@ -375,9 +377,8 @@ class P2PNetwork {
           if (!includes) {
             logger.info('Connecting to discovered peer:', val)
             this.connectToPeer(val)
-            // Sleep a bit before connecting to new peers
-            // Seems like a good idea
-            await sleep(500)
+            // Sleep a bit before connecting to new peers to avoid connection storms
+            await sleep(config.network.p2p.peerDiscoverySleepMs)
           }
         }
       } else if (msg.type === 'REQUEST_PEERS') {
