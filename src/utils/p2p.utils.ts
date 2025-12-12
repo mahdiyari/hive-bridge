@@ -1,3 +1,8 @@
+import { config } from '@/config'
+import { FullMessage } from '@/types/network.types'
+import { sha256 } from '@noble/hashes/sha2.js'
+import { bytesToHex } from '@noble/hashes/utils.js'
+
 /** Return true if the peer address is accessible at /status
  * - has a 2s timeout
  * @param address - without http://
@@ -29,7 +34,7 @@ export const checkPeerStatus = (
 }
 
 // Arbitary number which the messages are still considered valid
-const MAX_VALID_TIME = 8_000 // 8s
+const MAX_VALID_TIME = config.network.message.maxAgeMs
 
 /** Verify the hash of the message and verify the message is not older than 8 seconds */
 export const messageChecksum = (message: FullMessage) => {
@@ -59,10 +64,6 @@ export const messageChecksum = (message: FullMessage) => {
     return false
   }
 }
-
-import { FullMessage } from '@/types/network.types'
-import { sha256 } from '@noble/hashes/sha2.js'
-import { bytesToHex } from '@noble/hashes/utils.js'
 
 /** Return first 16 hex of sha256 hash of a message */
 export const messageHash = (message: string) => {
