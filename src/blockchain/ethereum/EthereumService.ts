@@ -10,13 +10,9 @@ import { bytesToHex } from '@noble/hashes/utils.js'
 const BadData = () => new Error('Bad data received from contract.')
 
 export class EthereumService implements ChainService {
-  // Wait 12 blocks before doing an unwrap
-  private CONFIRMATIONS = 12
-  // Arbitary number - might adjust later
-  private POLLING_INTERVAL = 20_000
-  // go back 225 blocks - 45 minutes
-  // unwraps should happen fast because of the hive transaction being based on the timestamp
-  private historyDepth = 225
+  private CONFIRMATIONS = config.eth.service.confirmations
+  private POLLING_INTERVAL = config.eth.service.pollingInterval
+  private historyDepth = config.eth.service.historyDepth
   private nodes: string[]
   private provider: ethers.FallbackProvider
   private contract: ethers.Contract
@@ -228,8 +224,8 @@ export class EthereumService implements ChainService {
         this.multisigThreshold = newValue
         logger.info(`ERC20 ${this.symbol} multiSigThreshold=${newValue}`)
       }
-    } catch {
-      // It's ok
+    } catch (error) {
+      logger.debug('Error fetching multisig threshold (will retry):', error)
     }
   }
 
