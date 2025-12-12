@@ -1,7 +1,16 @@
-import { call, Transaction } from 'hive-tx'
+import { callRPC, Transaction } from 'hive-tx'
 import { hexToBytes } from '@noble/hashes/utils.js'
+import { config } from '@/config'
 
-/** Build a deterministic Hive transaction based on timestamp */
+/**
+ * Build a deterministic Hive transaction based on timestamp
+ * @param from - Sender account username
+ * @param to - Recipient account username
+ * @param amount - Amount with asset symbol (e.g., "10.000 HIVE")
+ * @param memo - Transaction memo
+ * @param timestamp - Unix timestamp in milliseconds
+ * @returns Transaction object ready to be signed and broadcast
+ */
 export const buildHiveTransfer = async (
   from: string,
   to: string,
@@ -20,9 +29,12 @@ export const buildHiveTransfer = async (
       },
     ],
   ]
-  // 1 hour expiration (max currently) - increase it after the hardfork
-  const trx = await createTransaction(ops, 3_600_000, timestamp)
-  return new Transaction(trx)
+  const trx = await createTransaction(
+    ops,
+    config.hive.transaction.expirationMs,
+    timestamp
+  )
+  return new Transaction({ transaction: trx })
 }
 
 /**
@@ -34,8 +46,8 @@ const createTransaction = async (
   timestamp: number
 ) => {
   const blockNum = await getBlockNumFromTimestamp(timestamp)
-  const block = await call('condenser_api.get_block', [blockNum])
-  const blockId = block.result.block_id
+  const block = await callRPC('condenser_api.get_block', [blockNum])
+  const blockId = block.block_id
   const refBlockNum = blockNum & 0xffff
   const uintArray = hexToBytes(blockId)
   const refBlockPrefix =
@@ -50,46 +62,87 @@ const createTransaction = async (
     operations,
     ref_block_num: refBlockNum,
     ref_block_prefix: refBlockPrefix,
+    signatures: [],
   }
 }
 
 const cache: Map<number, number> = new Map()
+setInterval(() => {
+  cache.clear()
+}, 120_000)
 
-/* WARNING */
-// Changing these values might result in double unwrapping
-// Because the hive transaction parameters might change
-// Don't chnage the following 3 unless understood how it works
-const knownTimestamp = new Date('2025-04-09T14:19:36.000Z').getTime()
-const knownBlock = 94878350
-const errorMargin = 15 * 60 * 1000
-
-/** Find/estimate a block produced at near certain timestamp
- * We try to be deterministic with a margin of error of 15 minutes
- * Error under 1 hour would be acceptable because max transaction expiration is 1 hours
- * We need deterministic results for generating deterministic transactions across the network
- * to prevent double unwrapping
+/**
+ * Find/estimate the highest block_num where its timestamp <= targetTimestamp
+ * @param timestamp - targetTimestamp - Unix timestamp in milliseconds
+ * @returns Estimated block number
  */
 const getBlockNumFromTimestamp = async (timestamp: number) => {
-  // Round the timestamp to the start of minute
+  // Round the timestamp to the start of minute for determinism
   const targetTimestamp = startOfMinute(timestamp)
-  if (cache.has(targetTimestamp)) {
-    return <number>cache.get(targetTimestamp)
+  let cached = cache.get(targetTimestamp)
+  if (cached) {
+    return cached
   }
-  let delta = knownTimestamp - targetTimestamp // -number
-  let estimatedBlockNum = knownBlock - Math.round(delta / 3000)
+
+  // Use last_irreversible_block as reference
+  const headBlock = await getLIB()
+  let estimatedBlockNum = headBlock
   let foundTimestamp = await getBlockTimestamp(estimatedBlockNum)
-  while (Math.abs(foundTimestamp - targetTimestamp) >= errorMargin) {
-    while (foundTimestamp === 0) {
-      // in case we overshoot
-      estimatedBlockNum -= 1000
-      foundTimestamp = await getBlockTimestamp(estimatedBlockNum)
+
+  let countFirstEstimation = 0
+  // First find a block in a 15 seconds range OR estimate 5 times max
+  while (
+    countFirstEstimation < 5 &&
+    Math.abs(foundTimestamp - targetTimestamp) >= 15_000
+  ) {
+    // Estimate block_num based on headblock
+    const delta = foundTimestamp - targetTimestamp
+    estimatedBlockNum = estimatedBlockNum - Math.round(delta / 3000)
+    // Don't overshoot
+    if (estimatedBlockNum > headBlock) {
+      estimatedBlockNum = headBlock
     }
-    delta = foundTimestamp - targetTimestamp // -number
-    estimatedBlockNum -= Math.round(delta / 3000)
+    foundTimestamp = await getBlockTimestamp(estimatedBlockNum)
+    countFirstEstimation++
+  }
+  let i = 0
+  // At this point we should be close so walk one by one
+  // First make sure estimation is lower than the target
+  while (foundTimestamp > targetTimestamp) {
+    // Safety throw
+    if (i > 50) {
+      throw new Error(
+        `Error in estimating block number from timestamp1. Got:${foundTimestamp}, Target:${targetTimestamp}`
+      )
+    }
+    i++
+    estimatedBlockNum--
     foundTimestamp = await getBlockTimestamp(estimatedBlockNum)
   }
-  cache.set(targetTimestamp, estimatedBlockNum)
-  return estimatedBlockNum
+
+  let lastCloseEstimate = 0
+  // Now walk forward until we go above the target
+  // Find the highest block_num which has timestamp <= targetTimestamp
+  while (foundTimestamp <= targetTimestamp) {
+    // Safety throw
+    if (i > 70) {
+      throw new Error(
+        `Error in estimating block number from timestamp2. Got:${foundTimestamp}, Target:${targetTimestamp}`
+      )
+    }
+    i++
+    lastCloseEstimate = estimatedBlockNum
+    estimatedBlockNum++
+    if (estimatedBlockNum > headBlock) {
+      // Make sure we don't overshoot
+      estimatedBlockNum = headBlock
+      break
+    }
+    foundTimestamp = await getBlockTimestamp(estimatedBlockNum)
+  }
+
+  cache.set(targetTimestamp, lastCloseEstimate)
+  return lastCloseEstimate
 }
 
 const startOfMinute = (timestamp: number) => {
@@ -99,36 +152,34 @@ const startOfMinute = (timestamp: number) => {
 }
 
 const getBlockTimestamp = async (blockNum: number) => {
-  const res = await call('condenser_api.get_block_header', [blockNum])
-  if (res?.result?.timestamp) {
-    return new Date(res.result.timestamp + '.000Z').getTime()
+  const res = await callRPC('condenser_api.get_block_header', [blockNum])
+  if (res?.timestamp) {
+    return new Date(res.timestamp + '.000Z').getTime()
   } else {
     return 0
   }
 }
 
+const getLIB = async () => {
+  const res = await callRPC('condenser_api.get_dynamic_global_properties')
+  return res.last_irreversible_block_num as number
+}
+
 export const getAccount = async (username: string) => {
-  try {
-    const result = await call('condenser_api.get_accounts', [[username]])
-    if (result?.result && result.result[0]) {
-      return result.result[0] as {
-        active: {
-          account_auths: [string, number][]
-          key_auths: [string, number][]
-          weight_threshold: number
-        }
-        memo_key: string
-      }
+  const result = await callRPC('condenser_api.get_accounts', [[username]])
+  return result[0] as {
+    active: {
+      account_auths: [string, number][]
+      key_auths: [string, number][]
+      weight_threshold: number
     }
-    return null
-  } catch {
-    return null
+    memo_key: string
   }
 }
 
 export const getPublicActiveKeys = async (username: string) => {
-  const res = await call('condenser_api.get_accounts', [[username]])
-  const active = res.result[0].active.key_auths
+  const res = await getAccount(username)
+  const active = res.active.key_auths
   const pubKeys: string[] = []
   for (let i = 0; i < active.length; i++) {
     pubKeys.push(active[i][0])
