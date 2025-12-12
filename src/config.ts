@@ -16,7 +16,7 @@ export const config = {
   hive: {
     treasury: 'bridge4',
     genesis: 100468956,
-    // More than one so we can cross-check - todo in hive-tx: maybe implement quorum like ethers
+    // More than one so we can cross-check
     nodes: [
       'https://api.hive.blog',
       'https://api.deathwing.me',
@@ -24,11 +24,21 @@ export const config = {
       'https://techcoderx.com',
       'https://hiveapi.actifit.io',
       'https://api.c0ff33a.uk',
-      'https://hive-api.3speak.tv',
+      'https://api.openhive.network',
     ],
     operator: {
       username: getEnv('USERNAME'),
       activeKey: getEnv('ACTIVE_KEY'),
+    },
+    service: {
+      minAmount: 1,
+      pollingInterval: 5_000, // 5 seconds
+      historyBatchSize: 1000,
+      historyPollingSize: 10,
+    },
+    transaction: {
+      // Transaction expiration for unwraps (max currently 24 hours)
+      expirationMs: 86_300_000,
     },
   },
   eth: {
@@ -43,5 +53,29 @@ export const config = {
       'https://0xrpc.io/sep',
       'https://eth-sepolia.g.alchemy.com/v2/demo',
     ],
+    service: {
+      confirmations: 12,
+      pollingInterval: 20_000, // 20 seconds
+      // Go back 225 blocks (45 minutes) when starting
+      historyDepth: 225,
+    },
+  },
+  network: {
+    p2p: {
+      heartbeatInterval: 20_000, // 20 seconds
+      maxPeers: 5,
+      messageRateLimit: 10, // per second
+      handshakeTimeout: 5_000, // 5 seconds
+      peerCheckInterval: 60_000, // 1 minute
+      peerDiscoverySleepMs: 500,
+    },
+    operators: {
+      timeout: 30_000, // 30 seconds
+      updateInterval: 300_000, // 5 minutes
+    },
+    message: {
+      maxAgeMs: 8_000, // 8 seconds
+      seenListLifespanMs: 10_000, // 10 seconds
+    },
   },
 }
