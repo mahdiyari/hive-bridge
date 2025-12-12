@@ -1,12 +1,52 @@
 import { pendingUnwraps } from '@/Unwraps'
 import { pendingWraps } from '@/Wraps'
 import { ethers } from 'ethers'
-import { Express, json } from 'express'
+import { Express, json, Request, Response } from 'express'
 import { peers } from './Peers'
 import { hiveMultisigThreshold, operators } from './Operators'
 import { addedChainServices } from '@/blockchain'
 import { version } from '../../package.json'
 
+interface OperatorStatus {
+  username: string
+  status: 'CONNECTED' | 'NOT_CONNECTED' | 'WAITING'
+}
+
+interface WrapResponse {
+  msgHash: string
+  data: {
+    chainName: string
+    symbol: 'HIVE' | 'HBD'
+    address: string
+    amount: number
+    trxId: string
+    opInTrx: number
+    contract: string
+    username: string
+  }
+  operators: string[]
+  signatures: string[]
+  timestamp: number
+}
+
+interface HealthResponse {
+  version: string
+  chains: string[]
+  multisig_threshold: number
+  operators: OperatorStatus[]
+  bridge_health: 'HEALTHY' | 'UNKNOWN'
+  stats: {
+    pending_wraps: number
+    pending_unwraps: number
+    connected_peers: number
+    connected_operators: number
+    total_operators: number
+  }
+}
+
+/**
+ * Setup REST API endpoints for bridge status and pending operations
+ */
 export const API = (app: Express) => {
   app.use(json())
   // Allow CORS for simple GET endpoints
@@ -15,19 +55,24 @@ export const API = (app: Express) => {
     next()
   })
 
-  app.get('/', (req, res) => {
+  app.get('/', (req: Request, res: Response<HealthResponse>) => {
     const chains: string[] = []
     addedChainServices.forEach((val) => {
       chains.push(`${val.name}:${val.symbol}`)
     })
     let opsConnected = 0
-    const ops: {}[] = []
+    const ops: OperatorStatus[] = []
     operators.forEach((op) => {
-      if (op.status() === 'CONNECTED') {
+      const status = op.status()
+      if (status === 'CONNECTED') {
         opsConnected++
       }
-      ops.push({ usrename: op.username, status: op.status() })
+      ops.push({ username: op.username, status })
     })
+
+    const pendingWrapsCount = pendingWraps.getAllPendingWraps().size
+    const pendingUnwrapsCount = pendingUnwraps.getAllUnwraps().size
+    const connectedPeers = peers.getAllPeers().length
 
     res.json({
       version,
@@ -36,41 +81,68 @@ export const API = (app: Express) => {
       operators: ops,
       bridge_health:
         opsConnected >= hiveMultisigThreshold ? 'HEALTHY' : 'UNKNOWN',
+      stats: {
+        pending_wraps: pendingWrapsCount,
+        pending_unwraps: pendingUnwrapsCount,
+        connected_peers: connectedPeers,
+        connected_operators: opsConnected,
+        total_operators: operators.size,
+      },
     })
   })
 
-  app.get('/status', (req, res) => {
+  app.get('/status', (req: Request, res: Response<{ status: string }>) => {
     res.json({ status: 'OK' })
   })
 
-  app.get('/pending-hive-wraps', (req, res) => {
-    const allWraps = pendingWraps.getAllPendingWraps()
-    const temp: {}[] = []
-    allWraps.forEach((wrap, hash) => {
-      temp.push({
-        msgHash: wrap.msgHash,
-        data: wrap.data,
-        operators: wrap.operators,
-        signatures: wrap.signatures,
-        timestamp: wrap.timestamp,
+  app.get(
+    '/pending-hive-wraps',
+    (req: Request, res: Response<WrapResponse[]>) => {
+      const allWraps = pendingWraps.getAllPendingWraps()
+      const wraps: WrapResponse[] = []
+      allWraps.forEach((wrap) => {
+        wraps.push({
+          msgHash: wrap.msgHash,
+          data: wrap.data,
+          operators: wrap.operators,
+          signatures: wrap.signatures,
+          timestamp: wrap.timestamp,
+        })
       })
-    })
-    res.json(temp)
-  })
+      res.json(wraps)
+    }
+  )
 
-  app.get('/pending-hive-wraps/:usernameOrAddress', (req, res) => {
-    const userOrAddress = req.params.usernameOrAddress
-    if (userOrAddress.length < 3) {
-      return res.json({ error: 'Bad param' })
+  app.get(
+    '/pending-hive-wraps/:usernameOrAddress',
+    (req: Request, res: Response<WrapResponse[] | { error: string }>) => {
+      const userOrAddress = req.params.usernameOrAddress
+
+      // Input validation
+      if (!userOrAddress || userOrAddress.length < 3) {
+        return res.status(400).json({ error: 'Invalid parameter' })
+      }
+
+      // Sanitize input - allow only alphanumeric and basic Ethereum address chars
+      if (!/^[a-zA-Z0-9.-]+$/.test(userOrAddress)) {
+        return res.status(400).json({ error: 'Invalid characters in parameter' })
+      }
+
+      // Probably an Ethereum address (0x prefix or longer than max Hive username)
+      if (userOrAddress.length > 16) {
+        // Validate Ethereum address format
+        if (!ethers.isAddress(userOrAddress)) {
+          return res.status(400).json({ error: 'Invalid Ethereum address' })
+        }
+        const wraps = pendingWraps.getWrapsByAddress(userOrAddress)
+        return res.json(wraps)
+      }
+
+      // Hive username
+      const wraps = pendingWraps.getWrapsByUsername(userOrAddress)
+      res.json(wraps)
     }
-    // Probably an address
-    if (userOrAddress.length > 16) {
-      const wraps = pendingWraps.getWrapsByAddress(userOrAddress)
-      return res.json(wraps)
-    }
-    const wraps = pendingWraps.getWrapsByUsername(userOrAddress)
-    res.json(wraps)
-  })
+  )
 
   app.get('/pending-hive-unwraps', (req, res) => {
     res.json(Object.fromEntries(pendingUnwraps.getAllUnwraps()))
