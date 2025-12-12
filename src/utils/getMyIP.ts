@@ -1,7 +1,13 @@
+import { logger } from './logger'
+
 interface IP {
   ip: string
 }
 
+/**
+ * Get the public IP address of this node using ipify.org
+ * Tries IPv4 first, then IPv6, falls back to 'none' if both fail
+ */
 export const getMyIP = async (): Promise<IP> => {
   try {
     const result4 = await fetch('https://api4.ipify.org?format=json')
@@ -25,7 +31,8 @@ export const getMyIP = async (): Promise<IP> => {
       return { ip: ip6.ip }
     }
     return { ip: 'none' }
-  } catch {
+  } catch (error) {
+    logger.error('Failed to fetch public IP:', error)
     return { ip: 'none' }
   }
 }
