@@ -12,10 +12,8 @@ import { operators } from './network/Operators'
 import { Governance } from './governance/governance'
 
 // TODO:
-// We might want to send signatures out periodically if there is a pending wrap/unwrap
 // P2P limit etc might need tuning
-// We are still trusting Hive API nodes (the most likely attack vector I think)
-// Proxy ETH contract testing but should be simple
+// Proxy ETH contract?
 
 const TREASURY = config.hive.treasury
 
@@ -34,9 +32,6 @@ hiveService.start()
 // Initialize governance system
 const governance = new Governance(hiveService)
 
-// Check if bridge is paused before processing transfers
-const shouldProcessTransfer = () => !governance.isPaused()
-
 const addChainService = (
   chainService: ChainService,
   contractSymbol: 'HIVE' | 'HBD'
@@ -45,12 +40,6 @@ const addChainService = (
   chainService.start()
 
   hiveService.onTransfer(async (detail) => {
-    // Check if bridge is paused
-    if (!shouldProcessTransfer()) {
-      logger.debug('Bridge is paused, ignoring transfer')
-      return
-    }
-
     const symbol = detail.amount.split(' ')[1]
     if (symbol !== contractSymbol) {
       return
