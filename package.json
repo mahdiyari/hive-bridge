@@ -15,18 +15,18 @@
     "dotenv": "17.2.2",
     "ethers": "6.15.0",
     "express": "5.1.0",
-    "hive-tx": "^6.1.4",
-    "tsx": "^4.20.5",
+    "hive-tx": "^7.0.0",
+    "tsx": "^4.21.0",
     "ws": "8.18.3"
   },
   "devDependencies": {
     "@types/dotenv": "^6.1.1",
-    "@types/express": "^5.0.3",
+    "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/ws": "^8.18.1",
     "jest": "^30.2.0",
-    "ts-jest": "^29.4.5",
-    "typescript": "^5.9.2"
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.9.3"
   },
   "keywords": [],
   "author": "",
