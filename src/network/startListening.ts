@@ -1,11 +1,13 @@
 import { bytesToHex } from '@noble/hashes/utils.js'
 import { pendingUnwraps } from '../Unwraps'
-import { validateHeartbeat } from './message/HEARTBEAT'
 import { p2pNetwork } from './P2PNetwork'
 import { pendingWraps } from '../Wraps'
 import { peers } from './Peers'
 import { operators } from './Operators'
 import { messageList } from './messageList'
+import { sha256String } from '@/utils/p2p.utils'
+import { Signature } from 'hive-tx'
+import { config } from '@/config'
 
 export const startListening = () => {
   p2pNetwork.onMessage(async (msg) => {
@@ -74,4 +76,44 @@ export const startListening = () => {
       }
     }
   })
+}
+
+interface Heartbeat {
+  operator: string
+  peerId: string
+  timestamp: number
+}
+interface SignedHeartbeat extends Heartbeat {
+  signature: string
+}
+
+const validateHeartbeat = async (msg: SignedHeartbeat) => {
+  try {
+    // Reject older than 8s messages
+    if (Date.now() - msg.timestamp > config.network.message.maxAgeMs) {
+      return false
+    }
+    const operator = operators.get(msg.operator)
+    if (!operator) {
+      return false
+    }
+    const signature = Signature.from(msg.signature)
+    const rawMsg: Heartbeat = {
+      operator: msg.operator,
+      peerId: msg.peerId,
+      timestamp: msg.timestamp,
+    }
+    const hash = <Uint8Array>sha256String(JSON.stringify(rawMsg), false)
+    const recoveredKey = signature.getPublicKey(hash).toString()
+    const opKey = operator.publicKey
+    if (!opKey) {
+      return false
+    }
+    if (opKey === recoveredKey) {
+      return true
+    }
+    return false
+  } catch {
+    return false
+  }
 }
