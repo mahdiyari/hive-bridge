@@ -28,6 +28,7 @@ class P2PNetwork {
   private messageRateLimit = config.network.p2p.messageRateLimit
   private handshakeTimeout = config.network.p2p.handshakeTimeout
   private peerCheckInterval = config.network.p2p.peerCheckInterval
+  private maxMessageSize = config.network.p2p.maxMessageSize
   private messagesInLastSecond: Map<string, number> = new Map()
   private port: number
   /** Randomly generated uuidv4 */
@@ -116,62 +117,24 @@ class P2PNetwork {
 
   /** Handles the incoming connection and handshake from peers */
   private handleIncomingConnection(ws: WebSocket) {
-    let remoteId: string | undefined
-    // Timeout if not handshaked
-    setTimeout(() => {
-      if (!remoteId) {
-        ws.close()
-      }
-    }, this.handshakeTimeout)
-
-    ws.onmessage = (event) => {
-      const message = this.parseMessage(event.data.toString())
-      if (!message) {
-        return ws.close()
-      }
-      // If not handshaked and the first message is not hello, close
-      if (!remoteId && message.type !== 'HELLO') {
-        return ws.close()
-      }
-      // First message must be type HELLO
-      if (!remoteId && message.type === 'HELLO') {
-        // Experimental: Don't accept connections if we are at the peers limit
-        // Might want to send list of our peers so they can connect instead?
+    this.setupWebSocketHandlers(ws, {
+      isIncoming: true,
+      expectedHandshake: 'HELLO',
+      onHandshake: (message) => {
         if (peers.getAllPeers().length >= this.maxPeers * 2) {
-          // TODO: send peer list perhaps
-          return ws.close()
+          return { success: false }
         }
-        // Require ip address in incoming handshake
-        if (!message.data?.address) {
-          return ws.close()
+        if (message.type !== 'HELLO' || !message.data?.address) {
+          return { success: false }
         }
-        // Require valid uuid in incoming handshake
-        remoteId = message.data.peerId
-        if (!uuidValidate(remoteId)) {
-          return ws.close()
+        return {
+          success: true,
+          remoteId: message.data.peerId,
+          address: message.data.address,
+          onSuccess: () => messageList.HELLO_ACK(ws, this.myId),
         }
-        // Don't connect to yourself
-        if (remoteId === this.myId) {
-          return ws.close()
-        }
-        // Validate and add new peer
-        peers.addPeer(remoteId, ws, message.data.address)
-        messageList.HELLO_ACK(ws, this.myId)
-      } else if (remoteId && peers.getWS(remoteId)) {
-        return this.handleRegularMessage(message, remoteId, ws)
-      } else {
-        return ws.close()
-      }
-    }
-    ws.onclose = () => {
-      if (remoteId && peers.getWS(remoteId)) {
-        peers.removePeer(remoteId)
-      }
-    }
-    ws.onerror = () => {
-      logger.error('WebSocket error:', remoteId)
-      // onclose will be called after this
-    }
+      },
+    })
   }
 
   /** Add timestamp and hash the message before sending to ws */
@@ -242,67 +205,123 @@ class P2PNetwork {
     }
   }
 
+  /** Check if already connected to a peer address */
+  private isAlreadyConnected(peerAddress: string): boolean {
+    return peers.getAllPeers().some((peer) => peer.address === peerAddress)
+  }
+
+  /** Unified WebSocket handler setup for both incoming and outgoing connections */
+  private setupWebSocketHandlers(
+    ws: WebSocket,
+    options: {
+      isIncoming: boolean
+      expectedHandshake: 'HELLO' | 'HELLO_ACK'
+      address?: string
+      onHandshake: (message: FullMessage) => {
+        success: boolean
+        remoteId?: string
+        address?: string
+        onSuccess?: () => void
+      }
+    }
+  ) {
+    let remoteId: string | undefined
+    const handshakeTimeoutId = setTimeout(() => {
+      if (!remoteId) {
+        ws.close()
+      }
+    }, this.handshakeTimeout)
+
+    ws.onmessage = (event) => {
+      const message = this.parseMessage(event.data.toString())
+      if (!message) {
+        return ws.close()
+      }
+
+      if (!remoteId && message.type !== options.expectedHandshake) {
+        return ws.close()
+      }
+
+      if (!remoteId && message.type === options.expectedHandshake) {
+        if (!uuidValidate(message.data.peerId)) {
+          return ws.close()
+        }
+
+        if (message.data.peerId === this.myId) {
+          return ws.close()
+        }
+
+        const result = options.onHandshake(message)
+        if (!result.success) {
+          return ws.close()
+        }
+
+        remoteId = result.remoteId
+        clearTimeout(handshakeTimeoutId)
+        peers.addPeer(remoteId!, ws, result.address || null)
+        result.onSuccess?.()
+      } else if (remoteId && peers.getWS(remoteId)) {
+        return this.handleRegularMessage(message, remoteId, ws)
+      } else {
+        return ws.close()
+      }
+    }
+
+    ws.onclose = () => {
+      clearTimeout(handshakeTimeoutId)
+      if (remoteId) {
+        peers.removePeer(remoteId)
+      }
+    }
+
+    ws.onerror = () => {
+      const context = options.address || remoteId || 'unknown'
+      logger.error(`WebSocket error:`, context)
+    }
+  }
+
   /** peerAddress without ws:// */
   private connectToPeer(peerAddress: string) {
+    if (this.isAlreadyConnected(peerAddress)) {
+      return
+    }
+
     try {
-      let remoteId: string | undefined
-      // skip already connected peers
-      const publicPeers = peers.getPublicPeers()
-      for (const peer of publicPeers) {
-        if (peer.address === peerAddress) {
-          return
-        }
-      }
       const ws = new WebSocket(`ws://${peerAddress}`)
 
-      // Send HELLO onOpen
       ws.onopen = () => {
-        // Close the connection if not handshaked
-        setTimeout(() => {
-          if (!remoteId) {
-            ws.close()
-          }
-        }, this.handshakeTimeout)
         messageList.HELLO(ws, this.myId, this.myIP, this.port)
       }
-      ws.onmessage = (event) => {
-        const message = this.parseMessage(event.data.toString())
-        if (!message) {
-          return ws.close()
-        }
-        // Any message other than HELLO_ACK is invalid before handshake
-        if (!remoteId && message.type !== 'HELLO_ACK') {
-          return ws.close()
-        }
-        if (!remoteId && message.type === 'HELLO_ACK') {
-          if (!uuidValidate(message.data.peerId)) {
-            ws.close()
-            return
+
+      this.setupWebSocketHandlers(ws, {
+        isIncoming: false,
+        expectedHandshake: 'HELLO_ACK',
+        address: peerAddress,
+        onHandshake: (message) => {
+          if (message.type !== 'HELLO_ACK') {
+            return { success: false }
           }
-          remoteId = message.data.peerId
-          // Validate and add new peer
-          peers.addPeer(remoteId, ws, peerAddress)
-        } else if (remoteId && peers.getWS(remoteId)) {
-          return this.handleRegularMessage(message, remoteId, ws)
-        } else {
-          return ws.close()
-        }
-      }
-      ws.onclose = () => {
-        if (remoteId) {
-          peers.removePeer(remoteId)
-        }
-      }
-      ws.onerror = () => {
-        logger.error(`Error connecting to known peer ${peerAddress}`)
-        // onclose will run afterwards
-      }
+          return {
+            success: true,
+            remoteId: message.data.peerId,
+            address: peerAddress,
+          }
+        },
+      })
     } catch {
       logger.error(`Failed to connect to known peer ${peerAddress}`)
     }
   }
 
   private parseMessage = (message: string) => {
+    // Check message size before parsing
+    if (message.length > this.maxMessageSize) {
+      logger.warning(
+        `Message length ${message.length} exceeds limit ${this.maxMessageSize}`
+      )
+      return null
+    }
+
     let parsedMessage: FullMessage
     try {
       parsedMessage = <FullMessage>JSON.parse(message)
@@ -333,88 +352,100 @@ class P2PNetwork {
   private checkPeers() {
     const publicPeers = peers.getPublicPeers()
     const privatePeers = peers.getPrivatePeers()
-    // Randomly remove peers if connected to more than maxPeers
-    if (privatePeers.length > this.maxPeers) {
-      const peersToRemove = privatePeers.length - this.maxPeers
-      const rand = getRandomUniqueNumbers(0, privatePeers.length, peersToRemove)
-      rand.forEach((val) => {
-        peers.removePeer(privatePeers[val].id)
-      })
-    }
-    if (publicPeers.length > this.maxPeers) {
-      const peersToRemove = publicPeers.length - this.maxPeers
-      const rand = getRandomUniqueNumbers(0, publicPeers.length, peersToRemove)
-      rand.forEach((val) => {
-        peers.removePeer(publicPeers[val].id)
-      })
-    } else if (publicPeers.length < this.maxPeers) {
-      // Discover and connect to more peers if possible
+
+    this.pruneExcessPeers(privatePeers)
+    this.pruneExcessPeers(publicPeers)
+
+    if (publicPeers.length < this.maxPeers) {
       messageList.REQUEST_PEERS()
     }
+  }
+
+  /** Remove random peers if we have too many */
+  private pruneExcessPeers(peerList: Array<{ id: string }>) {
+    if (peerList.length <= this.maxPeers) {
+      return
+    }
+    const peersToRemove = peerList.length - this.maxPeers
+    const indices = getRandomUniqueNumbers(
+      0,
+      peerList.length - 1,
+      peersToRemove
+    )
+    indices.forEach((index) => {
+      peers.removePeer(peerList[index].id)
+    })
   }
 
   private handlePeerList() {
     this.event.addEventListener('peerMessage', async (e) => {
       const pe = e as PeerMessageEvent
       const msg = pe.detail.data
+
       if (msg.type === 'PEER_LIST') {
-        for (const val of msg.data.peers) {
-          // Don't connect to yourself
-          if (val === `${this.myIP}:${this.port}`) {
-            continue
-          }
-          const pubPeers = peers.getPublicPeers()
-          if (pubPeers.length >= this.maxPeers) {
-            return
-          }
-          let includes = false
-          for (let i = 0; i < pubPeers.length; i++) {
-            if (pubPeers[i].address === val) {
-              includes = true
-              break
-            }
-          }
-          if (!includes) {
-            logger.info('Connecting to discovered peer:', val)
-            this.connectToPeer(val)
-            // Sleep a bit before connecting to new peers to avoid connection storms
-            await sleep(config.network.p2p.peerDiscoverySleepMs)
-          }
-        }
+        await this.handlePeerListResponse(msg.data.peers)
       } else if (msg.type === 'REQUEST_PEERS') {
-        const pubPeers = peers.getPublicPeers()
-        if (pubPeers.length === 0) {
-          return
-        }
-        const addresses: string[] = []
-        pubPeers.forEach((val) => {
-          addresses.push(<string>val.address)
-        })
-        const ws = peers.getWS(pe.detail.sender)
-        if (!ws) {
-          return
-        }
-        messageList.PEER_LIST(ws, addresses)
+        this.handlePeerListRequest(pe.detail.sender)
       }
     })
   }
+
+  private async handlePeerListResponse(peerAddresses: string[]) {
+    const myAddress = `${this.myIP}:${this.port}`
+
+    for (const address of peerAddresses) {
+      if (address === myAddress) {
+        continue
+      }
+
+      if (peers.getPublicPeers().length >= this.maxPeers) {
+        return
+      }
+
+      if (!this.isAlreadyConnected(address)) {
+        logger.info('Connecting to discovered peer:', address)
+        this.connectToPeer(address)
+        await sleep(config.network.p2p.peerDiscoverySleepMs)
+      }
+    }
+  }
+
+  private handlePeerListRequest(senderId: string) {
+    const pubPeers = peers.getPublicPeers()
+    if (pubPeers.length === 0) {
+      return
+    }
+
+    const addresses = pubPeers
+      .map((peer) => peer.address)
+      .filter(Boolean) as string[]
+    const ws = peers.getWS(senderId)
+    if (ws) {
+      messageList.PEER_LIST(ws, addresses)
+    }
+  }
 }
 
-// AI generated function - seems to work fine
-/** Select a certain amount of unique numbers randomly from a range
- * - used to remove some peers randomly
- */
+/** Select random unique indices from a range */
 function getRandomUniqueNumbers(
   start: number,
   end: number,
   count: number
 ): number[] {
-  const range = Array.from({ length: end - start + 1 }, (_, i) => i + start)
-  for (let i = range.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[range[i], range[j]] = [range[j], range[i]]
+  const result: number[] = []
+  const available = new Set(
+    Array.from({ length: end - start + 1 }, (_, i) => i + start)
+  )
+
+  while (result.length < count && available.size > 0) {
+    const arr = Array.from(available)
+    const index = Math.floor(Math.random() * arr.length)
+    const value = arr[index]
+    result.push(value)
+    available.delete(value)
   }
-  return range.slice(0, count)
+
+  return result
 }
 
 export const p2pNetwork = new P2PNetwork()

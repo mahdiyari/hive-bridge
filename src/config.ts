@@ -68,6 +68,7 @@ export const config = {
       handshakeTimeout: 5_000, // 5 seconds
       peerCheckInterval: 60_000, // 1 minute
       peerDiscoverySleepMs: 500,
+      maxMessageSize: 1024 * 100, // 100 KB
     },
     operators: {
       timeout: 30_000, // 30 seconds
