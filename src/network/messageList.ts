@@ -15,22 +15,24 @@ import { pendingWraps } from '@/Wraps'
 
 export const messageList = {
   /** The first message to send for handshake */
-  HELLO: (ws: WebSocket, myId: string, myIP: string, port: number) => {
+  HELLO: (ws: WebSocket, myId: string, myIP: string, port: number, publicKey: string) => {
     const helloMsg: HelloMessage = {
       type: 'HELLO',
       data: {
         peerId: myId,
         address: `${myIP}:${port}`,
+        publicKey,
       },
     }
     p2pNetwork.wsSend(ws, helloMsg)
   },
   /** Response to HELLO to finish handshake */
-  HELLO_ACK: (ws: WebSocket, myId: string) => {
+  HELLO_ACK: (ws: WebSocket, myId: string, publicKey: string) => {
     const ackMsg: HelloAckMessage = {
       type: 'HELLO_ACK',
       data: {
         peerId: myId,
+        publicKey,
       },
     }
     p2pNetwork.wsSend(ws, ackMsg)
