@@ -12,6 +12,8 @@
     "test:p2p": "tsx test-p2p.ts"
   },
   "dependencies": {
+    "@noble/ciphers": "^2.1.1",
+    "@noble/curves": "^2.0.1",
     "@noble/hashes": "^2.0.1",
     "dotenv": "17.2.2",
     "ethers": "6.15.0",
