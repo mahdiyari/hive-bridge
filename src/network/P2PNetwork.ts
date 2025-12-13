@@ -19,6 +19,7 @@ import { messageChecksum, messageHash, uuidValidate } from '@/utils/p2p.utils'
 import { logger } from '@/utils/logger'
 import { API } from './API'
 import { messageList } from './messageList'
+import { P2PCrypto } from '@/utils/p2p.crypto'
 
 class P2PNetwork {
   private heartbeatInterval = config.network.p2p.heartbeatInterval
@@ -36,6 +37,7 @@ class P2PNetwork {
   /** It will be automatically saved as ipv4 or [ipv6] */
   private myIP: string = 'none'
   private event = new EventTarget()
+  private crypto: P2PCrypto
   private personalMessageTypes = [
     'HELLO',
     'HELLO_ACK',
@@ -49,6 +51,7 @@ class P2PNetwork {
     this.knownPeers = config.general.knownPeers?.split(/,\s?/) || []
     this.port = config.general.port
     this.myId = randomUUID()
+    this.crypto = new P2PCrypto()
   }
 
   /** Start the P2P network */
@@ -84,7 +87,7 @@ class P2PNetwork {
   public sendMessage(message: Message, exception?: string) {
     for (const peer of peers.getAllPeers()) {
       if (peer.id !== exception) {
-        this.wsSend(peer.ws, message)
+        this.wsSend(peer.ws, message, peer.id)
       }
     }
   }
@@ -124,38 +127,69 @@ class P2PNetwork {
         if (peers.getAllPeers().length >= this.maxPeers * 2) {
           return { success: false }
         }
-        if (message.type !== 'HELLO' || !message.data?.address) {
+        if (
+          message.type !== 'HELLO' ||
+          !message.data?.address ||
+          !message.data?.publicKey
+        ) {
           return { success: false }
         }
+
+        // Derive shared secret from peer's public key
+        const peerId = message.data.peerId
+        if (!this.crypto.deriveSharedSecret(peerId, message.data.publicKey)) {
+          logger.warning('Failed to derive shared secret for peer:', peerId)
+          return { success: false }
+        }
+
         return {
           success: true,
-          remoteId: message.data.peerId,
+          remoteId: peerId,
           address: message.data.address,
-          onSuccess: () => messageList.HELLO_ACK(ws, this.myId),
+          onSuccess: () =>
+            messageList.HELLO_ACK(ws, this.myId, this.crypto.getPublicKeyHex()),
         }
       },
     })
   }
 
   /** Add timestamp and hash the message before sending to ws */
-  public wsSend = (ws: WebSocket, msg: Message | FullMessage) => {
-    if (ws.readyState === WebSocket.OPEN) {
-      if ('hash' in msg) {
-        // The message is already FullMessage and is a repeat
-        peers.addMessage(msg.hash, msg)
-        return ws.send(JSON.stringify(msg))
-      }
-      const timestamp = Date.now()
-      const hash = messageHash(JSON.stringify({ ...msg, timestamp }))
-      const fullMessage = { ...msg, timestamp, hash }
-      // Add message to the seen list
-      // so we don't broadcast it again when received from other peers
-      peers.addMessage(hash, fullMessage)
-      const encodedMsg = JSON.stringify(fullMessage)
-      ws.send(encodedMsg)
-    } else {
+  public wsSend = (
+    ws: WebSocket,
+    msg: Message | FullMessage,
+    peerId?: string
+  ) => {
+    if (ws.readyState !== WebSocket.OPEN) {
       logger.warning('WebSocket connection is not open. Removing the peer.')
       ws.close()
+      return
+    }
+
+    let fullMessage: FullMessage
+    if ('hash' in msg) {
+      // The message is already FullMessage and is a repeat
+      fullMessage = msg
+      peers.addMessage(msg.hash, msg)
+    } else {
+      const timestamp = Date.now()
+      const hash = messageHash(JSON.stringify({ ...msg, timestamp }))
+      fullMessage = { ...msg, timestamp, hash }
+      peers.addMessage(hash, fullMessage)
+    }
+
+    const encodedMsg = JSON.stringify(fullMessage)
+
+    // Encrypt if we have a shared secret (post-handshake)
+    if (peerId && this.crypto.hasSecret(peerId)) {
+      const encrypted = this.crypto.encrypt(peerId, encodedMsg)
+      if (!encrypted) {
+        logger.error('Failed to encrypt message for peer:', peerId)
+        return
+      }
+      ws.send(encrypted)
+    } else {
+      // Send unencrypted (handshake messages only)
+      ws.send(encodedMsg)
     }
   }
 
@@ -233,7 +267,22 @@ class P2PNetwork {
     }, this.handshakeTimeout)
 
     ws.onmessage = (event) => {
-      const message = this.parseMessage(event.data.toString())
+      const rawData = event.data.toString()
+
+      console.log('got data:', rawData)
+
+      // Try to decrypt if we have a shared secret
+      let decryptedData = rawData
+      if (remoteId && this.crypto.hasSecret(remoteId)) {
+        const decrypted = this.crypto.decrypt(remoteId, rawData)
+        if (!decrypted) {
+          logger.warning('Failed to decrypt message from peer:', remoteId)
+          return ws.close()
+        }
+        decryptedData = decrypted
+      }
+
+      const message = this.parseMessage(decryptedData)
       if (!message) {
         return ws.close()
       }
@@ -270,6 +319,7 @@ class P2PNetwork {
     ws.onclose = () => {
       clearTimeout(handshakeTimeoutId)
       if (remoteId) {
+        this.crypto.removeSecret(remoteId)
         peers.removePeer(remoteId)
       }
     }
@@ -290,7 +340,13 @@ class P2PNetwork {
       const ws = new WebSocket(`ws://${peerAddress}`)
 
       ws.onopen = () => {
-        messageList.HELLO(ws, this.myId, this.myIP, this.port)
+        messageList.HELLO(
+          ws,
+          this.myId,
+          this.myIP,
+          this.port,
+          this.crypto.getPublicKeyHex()
+        )
       }
 
       this.setupWebSocketHandlers(ws, {
@@ -298,12 +354,20 @@ class P2PNetwork {
         expectedHandshake: 'HELLO_ACK',
         address: peerAddress,
         onHandshake: (message) => {
-          if (message.type !== 'HELLO_ACK') {
+          if (message.type !== 'HELLO_ACK' || !message.data?.publicKey) {
             return { success: false }
           }
+
+          // Derive shared secret from peer's public key
+          const peerId = message.data.peerId
+          if (!this.crypto.deriveSharedSecret(peerId, message.data.publicKey)) {
+            logger.warning('Failed to derive shared secret for peer:', peerId)
+            return { success: false }
+          }
+
           return {
             success: true,
-            remoteId: message.data.peerId,
+            remoteId: peerId,
             address: peerAddress,
           }
         },
