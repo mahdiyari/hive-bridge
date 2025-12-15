@@ -1,4 +1,4 @@
-import { callRPC, config as configHiveTx } from 'hive-tx'
+import { callRPC, callWithQuorum, config as configHiveTx } from 'hive-tx'
 import { TransferBody, TransferHistory } from '@/types/hive.types'
 import { config } from '@/config'
 
@@ -99,7 +99,7 @@ export class HiveService {
   }
 
   private async getTransferHistory(start = -1, count = 1000) {
-    const result = await callRPC('condenser_api.get_account_history', [
+    const result = await callWithQuorum('condenser_api.get_account_history', [
       this.TREASURY,
       start,
       count,
