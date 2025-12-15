@@ -15,24 +15,22 @@ import { pendingWraps } from '@/Wraps'
 
 export const messageList = {
   /** The first message to send for handshake */
-  HELLO: (ws: WebSocket, myId: string, myIP: string, port: number, publicKey: string) => {
+  HELLO: (ws: WebSocket, myId: string, myIP: string, port: number) => {
     const helloMsg: HelloMessage = {
       type: 'HELLO',
       data: {
         peerId: myId,
         address: `${myIP}:${port}`,
-        publicKey,
       },
     }
     p2pNetwork.wsSend(ws, helloMsg)
   },
   /** Response to HELLO to finish handshake */
-  HELLO_ACK: (ws: WebSocket, myId: string, publicKey: string) => {
+  HELLO_ACK: (ws: WebSocket, myId: string) => {
     const ackMsg: HelloAckMessage = {
       type: 'HELLO_ACK',
       data: {
         peerId: myId,
-        publicKey,
       },
     }
     p2pNetwork.wsSend(ws, ackMsg)
@@ -72,7 +70,7 @@ export const messageList = {
   HIVE_SIGNATURES: (unwrapInfo: UnwrapInfo, ws?: WebSocket) => {
     const { trxHash, operators, signatures } = unwrapInfo
     const unwrap = pendingUnwraps.getUnwrap(trxHash)
-    if (!unwrap || !unwrap.trx.signedTransaction) {
+    if (!unwrap || !unwrap.trx.transaction) {
       return
     }
     const message: HiveSignaturesMessage = {
@@ -80,9 +78,7 @@ export const messageList = {
       data: {
         trxHash,
         operators: operators ? operators : unwrap.operators,
-        signatures: signatures
-          ? signatures
-          : unwrap.trx.signedTransaction.signatures,
+        signatures: signatures ? signatures : unwrap.trx.transaction.signatures,
       },
     }
     if (ws) {
