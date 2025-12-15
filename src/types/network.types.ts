@@ -13,7 +13,6 @@ export interface HelloMessage {
   data: {
     peerId: string
     address: string
-    publicKey: string // ECDH public key (hex)
   }
 }
 
@@ -21,7 +20,6 @@ export interface HelloAckMessage {
   type: 'HELLO_ACK'
   data: {
     peerId: string
-    publicKey: string // ECDH public key (hex)
   }
 }
 
