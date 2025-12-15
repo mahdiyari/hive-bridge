@@ -2,10 +2,11 @@ import { config } from '@/config'
 import { FullMessage } from '@/types/network.types'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex } from '@noble/hashes/utils.js'
+import { Agent } from 'undici'
 
 /** Return true if the peer address is accessible at /status
  * - has a 2s timeout
- * @param address - without http://
+ * @param address - without https://
  */
 export const checkPeerStatus = (
   address: string,
@@ -15,7 +16,13 @@ export const checkPeerStatus = (
     const myTimer = setTimeout(() => {
       resolve(false)
     }, timeout)
-    fetch('http://' + address + '/status')
+    fetch('https://' + address + '/status', {
+      dispatcher: new Agent({
+        connect: {
+          rejectUnauthorized: false,
+        },
+      }),
+    })
       .then((res) => res.json())
       .then((res: any) => {
         if (res.status === 'OK') {
