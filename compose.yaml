@@ -1,11 +1,11 @@
 services:
   hive-bridge:
-    image: mahdiyari/hive-bridge:0.0.2
+    image: mahdiyari/hive-bridge:0.0.3
     container_name: hive-bridge
     init: true
     tty: true
     ports:
-      - "${P2P_PORT}:${P2P_PORT}"
+      - "${PORT}:${PORT}"
     env_file:
       - .env
     environment:
