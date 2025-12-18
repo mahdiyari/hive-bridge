@@ -105,6 +105,6 @@ export class HiveService {
       count,
       4,
     ])
-    return <TransferHistory[]>result.result || []
+    return <TransferHistory[]>result || []
   }
 }
