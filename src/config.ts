@@ -51,7 +51,8 @@ export const config = {
     nodes: [
       'https://ethereum-sepolia-rpc.publicnode.com',
       'https://0xrpc.io/sep',
-      'https://eth-sepolia.g.alchemy.com/v2/demo',
+      'https://ethereum-sepolia-public.nodies.app',
+      'https://sepolia.gateway.tenderly.co',
     ],
     service: {
       confirmations: 12,
