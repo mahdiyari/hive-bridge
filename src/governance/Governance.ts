@@ -76,9 +76,7 @@ export class Governance {
       if (!methods.includes(method)) {
         return
       }
-
       const target = memoParts[3]
-
       const proposalKey: `${Method}:${string}` = `${method}:${target}`
       if (action === 'start') {
         // TODO: security checks before starting a proposal
@@ -129,12 +127,10 @@ export class Governance {
     hiveSignature: string = ''
   ): Promise<Signatures> {
     const chainSignatures = {} as Signatures
-
     for (const chain of addedChainServices) {
       const sig = await getChainMessageHash(chain, proposal, true)
       chainSignatures[`${chain.name}${chain.symbol}`] = sig
     }
-
     chainSignatures['hive'] = hiveSignature
     return chainSignatures
   }
@@ -144,11 +140,9 @@ export class Governance {
   ): Promise<string | null> {
     const account = await getAccount(treasury)
     if (!account) return null
-
     const activeAuths = account.active
     const isValid = modifier(activeAuths)
     if (!isValid) return null
-
     activeAuths.account_auths.sort((a: any, b: any) => a[0].localeCompare(b[0]))
 
     const trx = await accountUpdateTrx(treasury, activeAuths, account.memo_key)
