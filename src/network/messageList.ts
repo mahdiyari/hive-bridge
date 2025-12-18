@@ -12,6 +12,7 @@ import { WebSocket } from 'ws'
 import { pendingUnwraps } from '@/Unwraps'
 import { ChainName } from '@/types/chain.types'
 import { pendingWraps } from '@/Wraps'
+import { Signatures } from '@/types/governance.types'
 
 export const messageList = {
   /** The first message to send for handshake */
@@ -133,6 +134,28 @@ export const messageList = {
       p2pNetwork.sendMessage(message)
     }
   },
+  GOVERNANCE: (govInfo: GovernanceInfo, ws?: WebSocket) => {
+    const message = {
+      type: 'GOVERNANCE',
+      data: {
+        proposalKey: govInfo.proposalKey,
+        operator: govInfo.operator,
+        signatures: govInfo.signatures,
+      },
+    }
+    if (ws) {
+      p2pNetwork.wsSend(ws, message)
+    } else {
+      p2pNetwork.sendMessage(message)
+    }
+  },
+  REQUEST_GOVERNANCE: () => {},
+}
+
+interface GovernanceInfo {
+  proposalKey: string
+  operator: string
+  signatures: Signatures
 }
 
 interface WrapInfo {
