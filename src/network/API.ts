@@ -6,6 +6,7 @@ import { peers } from './Peers'
 import { hiveMultisigThreshold, operators } from './Operators'
 import { addedChainServices } from '@/blockchain'
 import { version } from '../../package.json'
+import { proposals } from '@/governance/Governance'
 
 interface OperatorStatus {
   username: string
@@ -125,7 +126,9 @@ export const API = (app: Express) => {
 
       // Sanitize input - allow only alphanumeric and basic Ethereum address chars
       if (!/^[a-zA-Z0-9.-]+$/.test(userOrAddress)) {
-        return res.status(400).json({ error: 'Invalid characters in parameter' })
+        return res
+          .status(400)
+          .json({ error: 'Invalid characters in parameter' })
       }
 
       // Probably an Ethereum address (0x prefix or longer than max Hive username)
@@ -150,6 +153,10 @@ export const API = (app: Express) => {
 
   app.get('/peers', (req, res) => {
     res.json(peers.getAllPeers())
+  })
+
+  app.get('/proposals', (req, res) => {
+    res.json(Object.fromEntries(proposals))
   })
 
   // app.get('/operators', (req, res) => {
