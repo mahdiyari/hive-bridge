@@ -4,11 +4,6 @@ import { config } from '@/config'
 
 /**
  * Build a deterministic Hive transaction based on timestamp
- * @param from - Sender account username
- * @param to - Recipient account username
- * @param amount - Amount with asset symbol (e.g., "10.000 HIVE")
- * @param memo - Transaction memo
- * @param timestamp - Unix timestamp in milliseconds
  * @returns Transaction object ready to be signed and broadcast
  */
 export const buildHiveTransfer = async (
@@ -43,18 +38,17 @@ export const buildHiveTransfer = async (
 const createTransaction = async (
   operations: any[],
   exp: number,
-  timestamp: number
+  timestamp: number,
+  blockNumber?: number
 ) => {
-  const blockNum = await getBlockNumFromTimestamp(timestamp)
+  const blockNum = blockNumber || (await getBlockNumFromTimestamp(timestamp))
   const block = await callRPC('condenser_api.get_block', [blockNum])
   const blockId = block.block_id
   const refBlockNum = blockNum & 0xffff
   const uintArray = hexToBytes(blockId)
-  const refBlockPrefix =
-    uintArray[4] |
-    (uintArray[5] << 8) |
-    (uintArray[6] << 16) |
-    (uintArray[7] << 24)
+  const refBlockPrefix = Number(
+    new Uint32Array(uintArray.buffer, uintArray.byteOffset + 4, 1)[0]
+  )
   const expiration = new Date(timestamp + exp).toISOString().slice(0, -5)
   return {
     expiration,
@@ -151,7 +145,7 @@ const startOfMinute = (timestamp: number) => {
   return date.getTime()
 }
 
-const getBlockTimestamp = async (blockNum: number) => {
+export const getBlockTimestamp = async (blockNum: number) => {
   const res = await callRPC('condenser_api.get_block_header', [blockNum])
   if (res?.timestamp) {
     return new Date(res.timestamp + '.000Z').getTime()
@@ -185,4 +179,26 @@ export const getPublicActiveKeys = async (username: string) => {
     pubKeys.push(active[i][0])
   }
   return pubKeys
+}
+
+export const buildAccountUpdate = async (
+  treasury: string,
+  activeAuths: any,
+  memoKey: string,
+  blockNum: number
+) => {
+  const ops = [
+    [
+      'account_update',
+      {
+        account: treasury,
+        active: activeAuths,
+        json_metadata: '',
+        memo_key: memoKey,
+      },
+    ],
+  ]
+  const timestamp = await getBlockTimestamp(blockNum)
+  const trx = await createTransaction(ops, 86_400_000, timestamp, blockNum)
+  return new Transaction({ transaction: trx })
 }
