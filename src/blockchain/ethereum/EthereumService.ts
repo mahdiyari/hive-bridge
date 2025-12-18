@@ -6,6 +6,7 @@ import { logger } from '@/utils/logger'
 import { ChainName } from '@/types/chain.types'
 import { config } from '@/config'
 import { bytesToHex } from '@noble/hashes/utils.js'
+import { sleep } from '@/utils/sleep'
 
 const BadData = () => new Error('Bad data received from contract.')
 
@@ -52,8 +53,12 @@ export class EthereumService implements ChainService {
   /** Start after p2p network */
   start() {
     setInterval(async () => {
-      await this.getUnwrapEvents()
-      this.updateMultisigThreshold()
+      try {
+        await this.getUnwrapEvents()
+        this.getMultisigThreshold()
+      } catch (e) {
+        logger.warning('Failed fetching Unwrap events (will retry)', e)
+      }
     }, this.POLLING_INTERVAL)
   }
 
@@ -118,10 +123,10 @@ export class EthereumService implements ChainService {
 
   async hashUpdateMultisigThresholdMsg(newThreshold: number, nonce?: number) {
     // updateMultisigThreshold;{newThreshold};{nonceUpdateThreshold};{contract}
-    if (!nonce) {
-      nonce = await this.contract.nonceUpdateThreshold()
+    if (nonce === undefined) {
+      nonce = Number(await this.contract.nonceUpdateThreshold())
     }
-    if (!nonce || typeof nonce !== 'number') {
+    if (typeof nonce !== 'number') {
       throw BadData()
     }
     return hasher(
@@ -133,10 +138,11 @@ export class EthereumService implements ChainService {
   }
   async hashAddSignerMsg(username: string, address: string, nonce?: number) {
     // addSigner;{addr};{username};{nonceAddSigner};{contract}
-    if (!nonce) {
-      nonce = await this.contract.nonceAddSigner()
+    if (nonce === undefined) {
+      nonce = Number(await this.contract.nonceAddSigner())
     }
-    if (!nonce || typeof nonce !== 'number') {
+    if (typeof nonce !== 'number') {
+      console.log(nonce, typeof nonce)
       throw BadData()
     }
     return hasher(
@@ -149,10 +155,10 @@ export class EthereumService implements ChainService {
   }
   async hashRemoveSignerMsg(username: string, nonce?: number) {
     // removeSigner;{addr};{nonceRemoveSigner};{contract}
-    if (!nonce) {
-      nonce = await this.contract.nonceRemoveSigner()
+    if (nonce === undefined) {
+      nonce = Number(await this.contract.nonceRemoveSigner())
     }
-    if (!nonce || typeof nonce !== 'number') {
+    if (typeof nonce !== 'number') {
       throw BadData()
     }
     // Because we derive the address from the active key, the operator might
@@ -171,10 +177,10 @@ export class EthereumService implements ChainService {
   }
   async hashPauseMsg(nonce?: number) {
     // pause;{noncePause};{contract}
-    if (!nonce) {
-      nonce = await this.contract.noncePause()
+    if (nonce === undefined) {
+      nonce = Number(await this.contract.noncePause())
     }
-    if (!nonce || typeof nonce !== 'number') {
+    if (typeof nonce !== 'number') {
       throw BadData()
     }
     return hasher(
@@ -185,10 +191,10 @@ export class EthereumService implements ChainService {
   }
   async hashUnPauseMsg(nonce?: number) {
     // unpause;{nonceUnpause};{contract}
-    if (!nonce) {
-      nonce = await this.contract.nonceUnpause()
+    if (nonce === undefined) {
+      nonce = Number(await this.contract.nonceUnpause())
     }
-    if (!nonce || typeof nonce !== 'number') {
+    if (typeof nonce !== 'number') {
       throw BadData()
     }
     return hasher(
@@ -217,7 +223,7 @@ export class EthereumService implements ChainService {
   }
 
   /** Call periodically to get the current multiSigThreshold from the contract */
-  private updateMultisigThreshold = async () => {
+  private getMultisigThreshold = async () => {
     try {
       const newValue = Number(await this.contract.multisigThreshold())
       if (!isNaN(newValue) && newValue !== this.multisigThreshold) {
@@ -230,8 +236,17 @@ export class EthereumService implements ChainService {
   }
 
   /** Call periodically to get the Unwrap events from the contract to perform an Unwrap */
-  private async getUnwrapEvents() {
-    const headBlock = await this.provider.getBlockNumber()
+  private async getUnwrapEvents(retries = 0): Promise<void> {
+    const headBlock = await this.provider.getBlockNumber().catch(() => {})
+    // headblock can be a bitch in quorum so be patient
+    if (!headBlock) {
+      if (retries < 3) {
+        await sleep(1000)
+        return this.getUnwrapEvents(retries++)
+      } else {
+        throw BadData()
+      }
+    }
     const safeBlock = headBlock - this.CONFIRMATIONS
     // We don't need the too old data - this should run only the first time
     if (safeBlock - this.lastPolledBlock > this.historyDepth) {
