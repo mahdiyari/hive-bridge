@@ -9,7 +9,7 @@ import { config } from '@/config'
 import { addedChainServices } from './blockchain'
 import { HiveService } from './blockchain/hive/HiveService'
 import { operators } from './network/Operators'
-import { Governance } from './governance/governance'
+import { Governance } from './governance/Governance'
 
 // TODO:
 // P2P limit etc might need tuning
