@@ -3,16 +3,18 @@ import { sha256String } from '@/utils/p2p.utils'
 import { PrivateKey } from 'hive-tx'
 import { p2pNetwork } from './P2PNetwork'
 import {
+  GovernanceMessage,
   HelloAckMessage,
   HelloMessage,
   HiveSignaturesMessage,
+  RequestGovernanceMessage,
   SignaturesMessage,
 } from '@/types/network.types'
 import { WebSocket } from 'ws'
 import { pendingUnwraps } from '@/Unwraps'
 import { ChainName } from '@/types/chain.types'
 import { pendingWraps } from '@/Wraps'
-import { Signatures } from '@/types/governance.types'
+import { ProposalKey, Signatures } from '@/types/governance.types'
 
 export const messageList = {
   /** The first message to send for handshake */
@@ -134,14 +136,10 @@ export const messageList = {
       p2pNetwork.sendMessage(message)
     }
   },
-  GOVERNANCE: (govInfo: GovernanceInfo, ws?: WebSocket) => {
-    const message = {
+  GOVERNANCE: (govInfo: GovernanceMessage['data'], ws?: WebSocket) => {
+    const message: GovernanceMessage = {
       type: 'GOVERNANCE',
-      data: {
-        proposalKey: govInfo.proposalKey,
-        operator: govInfo.operator,
-        signatures: govInfo.signatures,
-      },
+      data: govInfo,
     }
     if (ws) {
       p2pNetwork.wsSend(ws, message)
@@ -149,13 +147,15 @@ export const messageList = {
       p2pNetwork.sendMessage(message)
     }
   },
-  REQUEST_GOVERNANCE: () => {},
-}
-
-interface GovernanceInfo {
-  proposalKey: string
-  operator: string
-  signatures: Signatures
+  REQUEST_GOVERNANCE: (proposalKey: ProposalKey) => {
+    const message: RequestGovernanceMessage = {
+      type: 'REQUEST_GOVERNANCE',
+      data: {
+        proposalKey,
+      },
+    }
+    p2pNetwork.sendMessage(message)
+  },
 }
 
 interface WrapInfo {
