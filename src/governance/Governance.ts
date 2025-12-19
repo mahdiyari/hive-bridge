@@ -3,14 +3,13 @@ import { HiveService } from '@/blockchain/hive/HiveService'
 import { config } from '@/config'
 import { operators } from '@/network/Operators'
 import { TransferBody } from '@/types/hive.types'
-import { getAccount } from '@/utils/hive.utils'
 import { logger } from '@/utils/logger'
-import { PrivateKey, Transaction } from 'hive-tx'
+import { PrivateKey } from 'hive-tx'
 import { Proposal } from './Proposal'
 import { Method, ProposalKey, Signatures } from '@/types/governance.types'
 import { getChainMessageHash } from './msgHash'
-
-const treasury = config.hive.treasury
+import { sleep } from '@/utils/sleep'
+import { messageList } from '@/network/messageList'
 
 const methods: Method[] = [
   'add-signer',
@@ -79,8 +78,6 @@ export class Governance {
       const target = memoParts[3]
       const proposalKey: `${Method}:${string}` = `${method}:${target}`
       if (action === 'start') {
-        // TODO: security checks before starting a proposal
-        // like check if threshold will break active authority
         if (proposals.has(proposalKey)) {
           logger.warning(
             'Got a transfer to start a proposal but it is already started:',
@@ -135,146 +132,49 @@ export class Governance {
     return chainSignatures
   }
 
-  private async buildHiveAuthoritySignature(
-    modifier: (activeAuths: any) => boolean
-  ): Promise<string | null> {
-    const account = await getAccount(treasury)
-    if (!account) return null
-    const activeAuths = account.active
-    const isValid = modifier(activeAuths)
-    if (!isValid) return null
-    activeAuths.account_auths.sort((a: any, b: any) => a[0].localeCompare(b[0]))
-
-    const trx = await accountUpdateTrx(treasury, activeAuths, account.memo_key)
-
-    return trx.sign(PrivateKey.from(this.activeKey!)).signatures[0]
+  private async getHiveSignature(
+    proposal: Proposal,
+    retries = 0
+  ): Promise<string> {
+    if (proposal.created) {
+      if (proposal.trx) {
+        return proposal.trx.sign(PrivateKey.from(this.activeKey!))
+          .signatures[0]!
+      } else {
+        return ''
+      }
+    } else {
+      if (retries > 60) {
+        throw new Error('Failed to create a proposal in 60 tries')
+      }
+      await sleep(1000)
+      return this.getHiveSignature(proposal, retries++)
+    }
   }
 
   private submitVote(proposal: Proposal, signatures: Signatures) {
     proposal.vote(this.username!, signatures)
-    logger.info(`Voted on proposal:`, `${proposal.method}:${proposal.target}`)
+    const proposalKey: ProposalKey = `${proposal.method}:${proposal.target}`
+    messageList.GOVERNANCE({
+      operator: this.username!,
+      proposalKey,
+      signatures,
+    })
+    logger.info(
+      `You voted on proposal:`,
+      `${proposal.method}:${proposal.target}`
+    )
   }
 
   private async signProposal(proposal: Proposal) {
-    switch (proposal.method) {
-      case 'add-signer':
-        await this.signAddSigner(proposal)
-        break
-      case 'remove-signer':
-        await this.signRemoveSigner(proposal)
-        break
-      case 'update-threshold':
-        await this.signUpdateThreshold(proposal)
-        break
-      case 'pause':
-        this.signPause(proposal)
-        break
-      case 'unpause':
-        this.signUnpause(proposal)
-        break
-    }
-  }
-
-  private async signAddSigner(proposal: Proposal) {
     if (!this.username || !this.activeKey) {
       return
     }
-    const hiveSignature = await this.buildHiveAuthoritySignature(
-      (activeAuths) => {
-        let alreadyAdded = false
-        for (const [user] of activeAuths.account_auths) {
-          if (user === proposal.target) {
-            alreadyAdded = true
-          }
-        }
-        if (!alreadyAdded) {
-          activeAuths.account_auths.push([proposal.target!, 1])
-        }
-        return true
-      }
-    )
-    if (!hiveSignature) return
+    const hiveSignature = await this.getHiveSignature(proposal)
     const chainSignatures = await this.buildChainSignatures(
       proposal,
       hiveSignature
     )
-    this.submitVote(proposal, chainSignatures)
-  }
-
-  private async signRemoveSigner(proposal: Proposal) {
-    if (!this.username || !this.activeKey) {
-      return
-    }
-    const hiveSignature = await this.buildHiveAuthoritySignature(
-      (activeAuths) => {
-        let sumWeights = 0
-        let tempSigners: [string, number][] = []
-        for (const value of activeAuths.account_auths) {
-          if (value[0] !== proposal.target) {
-            tempSigners.push(value)
-            sumWeights += value[1]
-          }
-        }
-        if (sumWeights < activeAuths.weight_threshold) {
-          logger.warning(
-            'Skipped adding new signer because sum_weights < weight_threshold'
-          )
-          return false
-        }
-        activeAuths.account_auths = tempSigners
-        return true
-      }
-    )
-    if (!hiveSignature) return
-    const chainSignatures = await this.buildChainSignatures(
-      proposal,
-      hiveSignature
-    )
-    this.submitVote(proposal, chainSignatures)
-  }
-
-  private async signUpdateThreshold(proposal: Proposal) {
-    if (!this.username || !this.activeKey) {
-      return
-    }
-    const newThreshold = Number(proposal.target)
-    const hiveSignature = await this.buildHiveAuthoritySignature(
-      (activeAuths) => {
-        let sumWeights = 0
-        for (const value of activeAuths.account_auths) {
-          sumWeights += value[1]
-        }
-        if (newThreshold > sumWeights) {
-          logger.warning(
-            'Skipped updating multiSigThreshold because newThreshold > simWeights'
-          )
-          return false
-        }
-        activeAuths.weight_threshold = newThreshold
-        return true
-      }
-    )
-    if (!hiveSignature) return
-    const chainSignatures = await this.buildChainSignatures(
-      proposal,
-      hiveSignature
-    )
-    this.submitVote(proposal, chainSignatures)
-  }
-
-  private async signPause(proposal: Proposal) {
-    if (!this.username || !this.activeKey) {
-      return
-    }
-    const chainSignatures = await this.buildChainSignatures(proposal)
-    this.submitVote(proposal, chainSignatures)
-  }
-
-  private async signUnpause(proposal: Proposal) {
-    if (!this.username || !this.activeKey) {
-      return
-    }
-    const chainSignatures = await this.buildChainSignatures(proposal)
     this.submitVote(proposal, chainSignatures)
   }
 
@@ -285,7 +185,7 @@ export class Governance {
   private cleanupExpiredProposals() {
     const expiredKeys: string[] = []
     for (const [key, proposal] of proposals) {
-      if (proposal.isExpired() && !proposal.executed) {
+      if (proposal.isExpired()) {
         expiredKeys.push(key)
       }
     }
@@ -294,19 +194,4 @@ export class Governance {
       logger.info(`Cleaned up expired proposal: ${key}`)
     })
   }
-}
-
-const accountUpdateTrx = async (
-  username: string,
-  activeAuths: any,
-  memoKey: string
-) => {
-  const tx = new Transaction({ expiration: 86_400_000 })
-  await tx.addOperation('account_update', {
-    account: username,
-    active: activeAuths,
-    json_metadata: '',
-    memo_key: memoKey,
-  })
-  return tx
 }
