@@ -156,7 +156,16 @@ export const API = (app: Express) => {
   })
 
   app.get('/proposals', (req, res) => {
-    res.json(Object.fromEntries(proposals))
+    const result = []
+    for (const [key, value] of proposals) {
+      result.push({
+        method: value.method,
+        target: value.target,
+        createdAt: value.createdAt,
+        signatures: Object.fromEntries(value.signatures),
+      })
+    }
+    res.json(result)
   })
 
   // app.get('/operators', (req, res) => {
