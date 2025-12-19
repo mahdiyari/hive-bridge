@@ -14,9 +14,9 @@ export class Proposal {
   method: Method
   target?: string
   createdAt: number
-  executed: boolean = false
   signatures: SignaturesMap = new Map()
   trx?: Transaction
+  created = false
 
   constructor(
     method: Method,
@@ -29,21 +29,24 @@ export class Proposal {
     this.createdAt = timestamp
     // Build the hive transactions
     if (method === 'add-signer') {
-      this.buildAddSigner(target!, blockNum!)
-    }
-    if (method === 'remove-signer') {
-      this.buildRemoveSigner(target!, blockNum!)
-    }
-    if (method === 'update-threshold') {
-      this.buildUpdateThreshold(Number(target), blockNum)
+      this.buildAddSigner(target!, blockNum!).then(() => {
+        this.created = true
+      })
+    } else if (method === 'remove-signer') {
+      this.buildRemoveSigner(target!, blockNum!).then(() => {
+        this.created = true
+      })
+    } else if (method === 'update-threshold') {
+      this.buildUpdateThreshold(Number(target), blockNum).then(() => {
+        this.created = true
+      })
+    } else {
+      this.created = true
     }
   }
 
   private async buildAddSigner(username: string, blockNum: number) {
     const account = await getAccount(treasury)
-    if (!account) {
-      logger.warning("Couldn't get account info to add as signer")
-    }
     const activeAuths = account.active
     let alreadyAdded = false
     for (const [user] of activeAuths.account_auths) {
@@ -65,9 +68,6 @@ export class Proposal {
 
   private async buildRemoveSigner(username: string, blockNum: number) {
     const account = await getAccount(treasury)
-    if (!account) {
-      logger.warning("Couldn't get account info to remove as signer")
-    }
     const activeAuths = account.active
     let sumWeights = 0
     let tempSigners: [string, number][] = []
@@ -81,7 +81,7 @@ export class Proposal {
       logger.warning(
         'Skipped removing signer because sum_weights < weight_threshold'
       )
-      return false
+      return
     }
     activeAuths.account_auths = tempSigners
     activeAuths.account_auths.sort((a: any, b: any) => a[0].localeCompare(b[0]))
@@ -95,9 +95,6 @@ export class Proposal {
 
   private async buildUpdateThreshold(newThreshold: number, blockNum: number) {
     const account = await getAccount(treasury)
-    if (!account) {
-      logger.warning("Couldn't get account info to update threshold")
-    }
     const activeAuths = account.active
     let sumWeights = 0
     for (const value of activeAuths.account_auths) {
@@ -107,7 +104,7 @@ export class Proposal {
       logger.warning(
         'Skipped updating multiSigThreshold because newThreshold > simWeights'
       )
-      return false
+      return
     }
     activeAuths.weight_threshold = newThreshold
     this.trx = await buildAccountUpdate(
@@ -141,7 +138,6 @@ export class Proposal {
         return
       }
     }
-    this.trx?.addSignature(signatures['hive'])
     this.signatures.set(operator, signatures)
   }
 
