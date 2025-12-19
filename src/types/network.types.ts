@@ -1,5 +1,6 @@
 import { WebSocket } from 'ws'
 import { ChainName } from './chain.types'
+import { ProposalKey, Signatures } from './governance.types'
 
 // export interface Peer {
 //   id: string
@@ -78,6 +79,22 @@ export interface RequestHiveSignatures {
   }
 }
 
+export interface GovernanceMessage {
+  type: 'GOVERNANCE'
+  data: {
+    proposalKey: ProposalKey
+    operator: string
+    signatures: Signatures
+  }
+}
+
+export interface RequestGovernanceMessage {
+  type: 'REQUEST_GOVERNANCE'
+  data: {
+    proposalKey: ProposalKey
+  }
+}
+
 export type Message =
   | HelloMessage
   | HelloAckMessage
@@ -88,6 +105,8 @@ export type Message =
   | RequestPeersMessage
   | RequestWrapSignatures
   | RequestHiveSignatures
+  | GovernanceMessage
+  | RequestGovernanceMessage
 
 export type FullMessage = Message & { timestamp: number; hash: string }
 
