@@ -8,6 +8,7 @@ import { messageList } from './messageList'
 import { sha256String } from '@/utils/p2p.utils'
 import { Signature } from 'hive-tx'
 import { config } from '@/config'
+import { proposals } from '@/governance/Governance'
 
 export const startListening = () => {
   p2pNetwork.onMessage(async (msg) => {
@@ -20,8 +21,7 @@ export const startListening = () => {
         // peers.receivedHeartbeat(data.peerId, data.operator)
         operators.get(data.operator)?.updateLastSeen()
       }
-    }
-    if (type === 'HIVE_SIGNATURES') {
+    } else if (type === 'HIVE_SIGNATURES') {
       // Received a Hive signature from peers for pendingUnwraps
       const data = msg.data.data
       // Verify and add the signature
@@ -35,8 +35,7 @@ export const startListening = () => {
           data.signatures[i]
         )
       }
-    }
-    if (type === 'REQUEST_HIVE_SIGNATURES') {
+    } else if (type === 'REQUEST_HIVE_SIGNATURES') {
       const trxHash = msg.data.data.trxHash
       const unwrap = pendingUnwraps.getUnwrap(trxHash)
       if (!unwrap) {
@@ -47,14 +46,13 @@ export const startListening = () => {
       if (ws) {
         messageList.HIVE_SIGNATURES({ trxHash }, ws)
       }
-    }
-    if (type === 'REQUEST_WRAP_SIGNATURES') {
+    } else if (type === 'REQUEST_WRAP_SIGNATURES') {
       const msgHash = msg.data.data.msgHash
-      const allWraps = pendingWraps.getAllPendingWraps()
-      for (const [key, value] of allWraps) {
-        if (key === msgHash) {
-          const ws = peers.getWS(msg.sender)
-          if (ws) {
+      const ws = peers.getWS(msg.sender)
+      if (ws) {
+        const allWraps = pendingWraps.getAllPendingWraps()
+        for (const [key, value] of allWraps) {
+          if (key === msgHash) {
             messageList.WRAP_SIGNATURES(
               { chainName: value.data.chainName, msgHash },
               ws
@@ -62,8 +60,7 @@ export const startListening = () => {
           }
         }
       }
-    }
-    if (type === 'WRAP_SIGNATURES') {
+    } else if (type === 'WRAP_SIGNATURES') {
       // Received ETH signatures from peers for pendingWraps
       const data = msg.data.data
       // validate and add signatures
@@ -73,6 +70,26 @@ export const startListening = () => {
       }
       for (let i = 0; i < signatures.length; i++) {
         await pendingWraps.addSignature(msgHash, signatures[i], operators[i])
+      }
+    } else if (type === 'GOVERNANCE') {
+      const proposalKey = msg.data.data.proposalKey
+      const proposal = proposals.get(proposalKey)
+      if (proposal) {
+      }
+    } else if (type === 'REQUEST_GOVERNANCE') {
+      const proposalKey = msg.data.data.proposalKey
+      const ws = peers.getWS(msg.sender)
+      if (ws) {
+        const proposal = proposals.get(proposalKey)
+        if (proposal) {
+          const signatures = proposal.signatures
+          for (const [key, value] of signatures) {
+            messageList.GOVERNANCE(
+              { operator: key, proposalKey, signatures: value },
+              ws
+            )
+          }
+        }
       }
     }
   })
