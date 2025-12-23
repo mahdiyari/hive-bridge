@@ -75,6 +75,7 @@ export const startListening = () => {
       const proposalKey = msg.data.data.proposalKey
       const proposal = proposals.get(proposalKey)
       if (proposal) {
+        proposal.vote(msg.data.data.operator, msg.data.data.signatures)
       }
     } else if (type === 'REQUEST_GOVERNANCE') {
       const proposalKey = msg.data.data.proposalKey
