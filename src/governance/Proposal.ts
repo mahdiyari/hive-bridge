@@ -1,48 +1,68 @@
 import { addedChainServices } from '@/blockchain'
 import { config } from '@/config'
-import { Method, Signatures, SignaturesMap } from '@/types/governance.types'
-import { buildAccountUpdate, getAccount } from '@/utils/hive.utils'
+import { ChainSymbolKey, Method, ProposalKey } from '@/types/governance.types'
+import {
+  buildAccountUpdate,
+  getAccount,
+  getPublicActiveKeys,
+} from '@/utils/hive.utils'
 import { logger } from '@/utils/logger'
-import { Transaction } from 'hive-tx'
+import { Signature, Transaction } from 'hive-tx'
 import { getChainMessageHash } from './msgHash'
 import { hiveMultisigThreshold, operators } from '@/network/Operators'
+import { sleep } from '@/utils/sleep'
 
 const treasury = config.hive.treasury
 
 export class Proposal {
   private static readonly PROPOSAL_EXPIRY_DAYS = 1
+  chain: ChainSymbolKey
   method: Method
-  target?: string
+  target: string
+  nonce: number
+  blockNum: number
   createdAt: number
-  signatures: SignaturesMap = new Map()
+  /** <username, sginature> */
+  signatures: Map<string, string> = new Map()
   trx?: Transaction
   created = false
+  proposalKey: ProposalKey
 
   constructor(
+    chain: ChainSymbolKey,
     method: Method,
     timestamp: number,
     blockNum: number,
-    target?: string
+    target: string,
+    nonce: number
   ) {
+    this.chain = chain
     this.method = method
     this.target = target
+    this.nonce = nonce
+    this.blockNum = blockNum
     this.createdAt = timestamp
     // Build the hive transactions
-    if (method === 'add-signer') {
-      this.buildAddSigner(target!, blockNum!).then(() => {
-        this.created = true
-      })
-    } else if (method === 'remove-signer') {
-      this.buildRemoveSigner(target!, blockNum!).then(() => {
-        this.created = true
-      })
-    } else if (method === 'update-threshold') {
-      this.buildUpdateThreshold(Number(target), blockNum).then(() => {
-        this.created = true
-      })
+    if (chain === 'HIVE') {
+      if (method === 'add-signer') {
+        this.buildAddSigner(target, blockNum).then(() => {
+          this.created = true
+        })
+      } else if (method === 'remove-signer') {
+        this.buildRemoveSigner(target, blockNum).then(() => {
+          this.created = true
+        })
+      } else if (method === 'update-threshold') {
+        this.buildUpdateThreshold(Number(target), blockNum).then(() => {
+          this.created = true
+        })
+      } else {
+        throw new Error(`${method} for chain HIVE not implemented`)
+      }
     } else {
       this.created = true
     }
+    this.proposalKey = `${chain}:${method}:${target}:${blockNum}`
   }
 
   private async buildAddSigner(username: string, blockNum: number) {
@@ -118,27 +138,52 @@ export class Proposal {
   // TODO: Check operator keys/address on chain and on contracts
   // periodically and produce warnings if they don't match
 
-  async vote(operator: string, signatures: Signatures) {
+  async vote(operator: string, signature: string): Promise<void> {
+    if (!this.created) {
+      await sleep(200)
+      return this.vote(operator, signature)
+    }
     if (this.signatures.get(operator)) {
       return
     }
-    for (const chain of addedChainServices) {
+    if (this.chain === 'HIVE') {
+      if (!this.trx) {
+        return
+      }
+      const op = operators.get(operator)
+      if (!op) {
+        logger.warning(
+          `Got a vote for proposal ${this.proposalKey} but operator doesn't exist ${operator}`
+        )
+        return
+      }
+      const opKey = op.publicKey
+      const sig = Signature.from(signature)
+      const recovered = sig.getPublicKey(this.trx?.digest().digest)
+      if (recovered.toString() !== opKey) {
+        logger.warning(
+          `Couldn't verify signature for proposal vote from ${operator} for ${this.proposalKey}`
+        )
+        return
+      }
+      if (this.hasEnoughVotes()) {
+        this.broadcastOnHive()
+      }
+    } else {
+      const chain = addedChainServices[this.chain]
       const msgHash = await getChainMessageHash(chain, this)
-      const recoveredAddress = chain.recoverAddress(
-        msgHash,
-        signatures[`${chain.name}${chain.symbol}`]
-      )
+      const recoveredAddress = chain.recoverAddress(msgHash, signature)
       const operatorAddress = chain.toAddress(
         operators.get(operator)?.publicKey!
       )
       if (operatorAddress !== recoveredAddress) {
         logger.warning(
-          `Couldn't verify the signatures for proposal vote from ${operator} for ${this.method}${this.target}`
+          `Couldn't verify the signatures for proposal vote from ${operator} for ${this.proposalKey}`
         )
         return
       }
     }
-    this.signatures.set(operator, signatures)
+    this.signatures.set(operator, signature)
   }
 
   isExpired(): boolean {
@@ -149,6 +194,25 @@ export class Proposal {
   }
 
   hasEnoughVotes(): boolean {
-    return this.signatures.size >= hiveMultisigThreshold
+    if (this.chain === 'HIVE') {
+      return this.signatures.size >= hiveMultisigThreshold
+    }
+    if (this.chain === 'ETHHIVE') {
+      return (
+        this.signatures.size >= addedChainServices.ETHHIVE.multisigThreshold
+      )
+    }
+    if (this.chain === 'ETHHBD') {
+      return this.signatures.size >= addedChainServices.ETHHBD.multisigThreshold
+    }
+    return false
+  }
+
+  private broadcastOnHive() {
+    // broadcast happens every time a new signature is added after the threshold
+    // could limit it to one run but no harm in re-trying just in case wasn't broadcasted
+    if (this.trx) {
+      this.trx.broadcast().catch()
+    }
   }
 }
