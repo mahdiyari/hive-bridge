@@ -45,12 +45,10 @@ const updateOperators = async () => {
       logger.error('Failed to fetch treasury account data')
       return
     }
-
     const active = res.active.account_auths
     const newThreshold = Number(res.active.weight_threshold)
     const newOps: string[] = []
     const currentOps = operators.keys().toArray()
-
     for (let i = 0; i < active.length; i++) {
       const username = active[i][0]
       const pubKeys = await getPublicActiveKeys(username)
@@ -58,16 +56,22 @@ const updateOperators = async () => {
         logger.warning(`No public keys found for operator: ${username}`)
         continue
       }
-      if (!operators.get(username)) {
+
+      const op = operators.get(username)
+      if (!op) {
         const op = new Operator(username, pubKeys[0])
         operators.set(username, op)
+      } else {
+        if (op.publicKey !== pubKeys[0]) {
+          logger.warning(
+            `Operator ${op.username} changed their active key! Must update the contracts.`
+          )
+        }
       }
       newOps.push(username)
     }
-
     const deletedOperators = currentOps.filter((item) => !newOps.includes(item))
     const addedOperators = newOps.filter((item) => !currentOps.includes(item))
-
     if (addedOperators.length > 0) {
       logger.info(`operators added to the treasury account: ${addedOperators}`)
     }
@@ -86,6 +90,10 @@ const updateOperators = async () => {
   } catch (error) {
     logger.error('Error updating operators:', error)
   }
+}
+
+const checkOperatorKeys = async () => {
+  operators.forEach((value, key) => {})
 }
 
 // Update operators list periodically
