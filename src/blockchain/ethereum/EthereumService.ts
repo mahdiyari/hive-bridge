@@ -7,8 +7,14 @@ import { ChainName } from '@/types/chain.types'
 import { config } from '@/config'
 import { bytesToHex } from '@noble/hashes/utils.js'
 import { sleep } from '@/utils/sleep'
+import { Method } from '@/types/governance.types'
 
 const BadData = () => new Error('Bad data received from contract.')
+const NoSignersFound = () => new Error('No signers returned from the contract.')
+const NotASigner = (username: string) =>
+  new Error(`${username} is not a signer.`)
+const BadMethod = (method: string) =>
+  new Error(`Got a bad proposal method: ${method}`)
 
 export class EthereumService implements ChainService {
   private CONFIRMATIONS = config.eth.service.confirmations
@@ -121,14 +127,8 @@ export class EthereumService implements ChainService {
     return ethers.computeAddress(hexPubKey)
   }
 
-  async hashUpdateMultisigThresholdMsg(newThreshold: number, nonce?: number) {
+  async hashUpdateMultisigThresholdMsg(newThreshold: number, nonce: number) {
     // updateMultisigThreshold;{newThreshold};{nonceUpdateThreshold};{contract}
-    if (nonce === undefined) {
-      nonce = Number(await this.contract.nonceUpdateThreshold())
-    }
-    if (typeof nonce !== 'number') {
-      throw BadData()
-    }
     return hasher(
       ['string', 'updateMultisigThreshold'],
       ['uint8', newThreshold],
@@ -136,15 +136,8 @@ export class EthereumService implements ChainService {
       ['address', this.contractAddress]
     )
   }
-  async hashAddSignerMsg(username: string, address: string, nonce?: number) {
+  async hashAddSignerMsg(username: string, address: string, nonce: number) {
     // addSigner;{addr};{username};{nonceAddSigner};{contract}
-    if (nonce === undefined) {
-      nonce = Number(await this.contract.nonceAddSigner())
-    }
-    if (typeof nonce !== 'number') {
-      console.log(nonce, typeof nonce)
-      throw BadData()
-    }
     return hasher(
       ['string', 'addSigner'],
       ['address', address],
@@ -153,21 +146,12 @@ export class EthereumService implements ChainService {
       ['address', this.contractAddress]
     )
   }
-  async hashRemoveSignerMsg(username: string, nonce?: number) {
+  async hashRemoveSignerMsg(username: string, nonce: number) {
     // removeSigner;{addr};{nonceRemoveSigner};{contract}
-    if (nonce === undefined) {
-      nonce = Number(await this.contract.nonceRemoveSigner())
-    }
-    if (typeof nonce !== 'number') {
-      throw BadData()
-    }
     // Because we derive the address from the active key, the operator might
     // change the key and then the saved address won't match the active key
     // so we get the saved address in order to remove that address
     const address = await this.getOperatorAddress(username)
-    if (!address) {
-      throw BadData()
-    }
     return hasher(
       ['string', 'removeSigner'],
       ['address', address],
@@ -175,28 +159,16 @@ export class EthereumService implements ChainService {
       ['address', this.contractAddress]
     )
   }
-  async hashPauseMsg(nonce?: number) {
+  async hashPauseMsg(nonce: number) {
     // pause;{noncePause};{contract}
-    if (nonce === undefined) {
-      nonce = Number(await this.contract.noncePause())
-    }
-    if (typeof nonce !== 'number') {
-      throw BadData()
-    }
     return hasher(
       ['string', 'pause'],
       ['uint256', nonce],
       ['address', this.contractAddress]
     )
   }
-  async hashUnPauseMsg(nonce?: number) {
+  async hashUnPauseMsg(nonce: number) {
     // unpause;{nonceUnpause};{contract}
-    if (nonce === undefined) {
-      nonce = Number(await this.contract.nonceUnpause())
-    }
-    if (typeof nonce !== 'number') {
-      throw BadData()
-    }
     return hasher(
       ['string', 'unpause'],
       ['uint256', nonce],
@@ -204,22 +176,56 @@ export class EthereumService implements ChainService {
     )
   }
 
+  async getNonce(method: Method, retries = 0): Promise<number> {
+    try {
+      if (method === 'add-signer') {
+        return Number(await this.contract.nonceAddSigner())
+      }
+      if (method === 'remove-signer') {
+        return Number(await this.contract.nonceRemoveSigner())
+      }
+      if (method === 'update-threshold') {
+        return Number(await this.contract.nonceUpdateThreshold())
+      }
+      if (method === 'pause') {
+        return Number(await this.contract.noncePause())
+      }
+      if (method === 'unpause') {
+        return Number(await this.contract.nonceUnpause())
+      }
+    } catch {
+      if (retries > 20) {
+        throw BadData()
+      }
+      await sleep(100)
+      return this.getNonce(method, retries++)
+    }
+    throw BadMethod(method)
+  }
+
   recoverAddress(msgHash: string, signature: string) {
     return ethers.recoverAddress(msgHash, signature)
   }
 
-  /** Return the added address of an operator from their username */
-  private async getOperatorAddress(username: string): Promise<string | null> {
+  async getSigners(): Promise<[string, string][]> {
     const signers = await this.contract.getAllSigners()
     if (!signers) {
-      return null
+      throw NoSignersFound()
     }
+    return signers
+  }
+
+  /** Return the added address of an operator from their username
+   * @throws Error when no signers found or username is not a signer
+   */
+  private async getOperatorAddress(username: string): Promise<string> {
+    const signers = await this.getSigners()
     for (const signer of signers) {
       if (signer[0] === username) {
         return signer[1]
       }
     }
-    return null
+    throw NotASigner(username)
   }
 
   /** Call periodically to get the current multiSigThreshold from the contract */
