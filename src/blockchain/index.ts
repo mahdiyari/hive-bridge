@@ -16,4 +16,7 @@ const erc20HIVE = new EthereumService(HIVE_ETH_CONTRACT, 'HIVE')
 const erc20HBD = new EthereumService(HBD_ETH_CONTRACT, 'HBD')
 
 // Add all chain services here (except HiveService)
-export const addedChainServices: ChainService[] = [erc20HIVE, erc20HBD]
+export const addedChainServices = {
+  ETHHIVE: erc20HIVE,
+  ETHHBD: erc20HBD,
+}
