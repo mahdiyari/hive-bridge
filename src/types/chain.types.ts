@@ -1,3 +1,5 @@
+import { Method } from './governance.types'
+
 /**
  * All blockchain services (except HiveService) must satisfy this interface
  */
@@ -15,12 +17,21 @@ export interface ChainService {
   signMsgHash(msgHash: string): Promise<string>
   isAddress(address: string): boolean
   toAddress(publicKey: string): string
-  hashUpdateMultisigThresholdMsg(newThreshold: number): Promise<string>
-  hashAddSignerMsg(username: string, address: string): Promise<string>
-  hashRemoveSignerMsg(username: string): Promise<string>
-  hashPauseMsg(): Promise<string>
-  hashUnPauseMsg(): Promise<string>
+  hashUpdateMultisigThresholdMsg(
+    newThreshold: number,
+    nonce: number
+  ): Promise<string>
+  hashAddSignerMsg(
+    username: string,
+    address: string,
+    nonce: number
+  ): Promise<string>
+  hashRemoveSignerMsg(username: string, nonce: number): Promise<string>
+  hashPauseMsg(nonce: number): Promise<string>
+  hashUnPauseMsg(nonce: number): Promise<string>
   recoverAddress(msgHash: string, signature: string): string
+  getNonce(method: Method): Promise<number>
+  getSigners(): Promise<[username: string, address: string][]>
   contractAddress: string
   multisigThreshold: number
   name: ChainName
