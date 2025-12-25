@@ -43,8 +43,8 @@ export const config = {
   },
   eth: {
     contract: {
-      hive: '0x735F1732b84F46B2514B079B91455d4438243484',
-      hbd: '0x3b962eC31324E29ad97fEe2Aab988B762a890888',
+      hive: '0x4A63078adf964Fd28cFB098F40d04A84c9cC80dd',
+      hbd: '0xE64235C82C4cb9bfba6c3F821e56B1FB59c70BE5',
     },
     // Testing on sepolia
     // More than one so we can cross-check - quorum=2
