@@ -1,15 +1,10 @@
 import { ChainService } from './chain.types'
 
-type ChainSymbolKey =
+export type ChainSymbolKey =
   | `${ChainService['name']}${ChainService['symbol']}`
-  | 'hive'
+  | 'HIVE'
 
-export type Signatures = {
-  [K in ChainSymbolKey]: string
-}
-export type SignaturesMap = Map<string, Signatures>
-
-export type ProposalKey = `${Method}:${string}`
+export type ProposalKey = `${ChainSymbolKey}:${Method}:${string}:${number}`
 
 export type Method =
   | 'add-signer'
