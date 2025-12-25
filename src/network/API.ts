@@ -30,37 +30,19 @@ interface WrapResponse {
   timestamp: number
 }
 
-interface HealthResponse {
-  version: string
-  chains: string[]
-  multisig_threshold: number
-  operators: OperatorStatus[]
-  bridge_health: 'HEALTHY' | 'UNKNOWN'
-  stats: {
-    pending_wraps: number
-    pending_unwraps: number
-    connected_peers: number
-    connected_operators: number
-    total_operators: number
-  }
-}
-
 /**
  * Setup REST API endpoints for bridge status and pending operations
  */
 export const API = (app: Express) => {
   app.use(json())
   // Allow CORS for simple GET endpoints
-  app.use((req, res, next) => {
+  app.use((_req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*')
     next()
   })
 
-  app.get('/', (req: Request, res: Response<HealthResponse>) => {
-    const chains: string[] = []
-    addedChainServices.forEach((val) => {
-      chains.push(`${val.name}:${val.symbol}`)
-    })
+  app.get('/', (_req, res) => {
+    const chains = Object.keys(addedChainServices)
     let opsConnected = 0
     const ops: OperatorStatus[] = []
     operators.forEach((op) => {
@@ -92,83 +74,70 @@ export const API = (app: Express) => {
     })
   })
 
-  app.get('/status', (req: Request, res: Response<{ status: string }>) => {
+  app.get('/status', (_req, res) => {
     res.json({ status: 'OK' })
   })
 
-  app.get(
-    '/pending-hive-wraps',
-    (req: Request, res: Response<WrapResponse[]>) => {
-      const allWraps = pendingWraps.getAllPendingWraps()
-      const wraps: WrapResponse[] = []
-      allWraps.forEach((wrap) => {
-        wraps.push({
-          msgHash: wrap.msgHash,
-          data: wrap.data,
-          operators: wrap.operators,
-          signatures: wrap.signatures,
-          timestamp: wrap.timestamp,
-        })
+  app.get('/pending-hive-wraps', (_req, res) => {
+    const allWraps = pendingWraps.getAllPendingWraps()
+    const wraps: WrapResponse[] = []
+    allWraps.forEach((wrap) => {
+      wraps.push({
+        msgHash: wrap.msgHash,
+        data: wrap.data,
+        operators: wrap.operators,
+        signatures: wrap.signatures,
+        timestamp: wrap.timestamp,
       })
-      res.json(wraps)
+    })
+    res.json(wraps)
+  })
+
+  app.get('/pending-hive-wraps/:usernameOrAddress', (req, res) => {
+    const userOrAddress = req.params.usernameOrAddress
+    // Input validation
+    if (!userOrAddress || userOrAddress.length < 3) {
+      return res.status(400).json({ error: 'Invalid parameter' })
     }
-  )
-
-  app.get(
-    '/pending-hive-wraps/:usernameOrAddress',
-    (req: Request, res: Response<WrapResponse[] | { error: string }>) => {
-      const userOrAddress = req.params.usernameOrAddress
-
-      // Input validation
-      if (!userOrAddress || userOrAddress.length < 3) {
-        return res.status(400).json({ error: 'Invalid parameter' })
-      }
-
-      // Sanitize input - allow only alphanumeric and basic Ethereum address chars
-      if (!/^[a-zA-Z0-9.-]+$/.test(userOrAddress)) {
-        return res
-          .status(400)
-          .json({ error: 'Invalid characters in parameter' })
-      }
-
-      // Probably an Ethereum address (0x prefix or longer than max Hive username)
-      if (userOrAddress.length > 16) {
-        // Validate Ethereum address format
-        if (!ethers.isAddress(userOrAddress)) {
-          return res.status(400).json({ error: 'Invalid Ethereum address' })
-        }
-        const wraps = pendingWraps.getWrapsByAddress(userOrAddress)
-        return res.json(wraps)
-      }
-
-      // Hive username
-      const wraps = pendingWraps.getWrapsByUsername(userOrAddress)
-      res.json(wraps)
+    // Sanitize input - allow only alphanumeric and basic Ethereum address chars
+    if (!/^[a-zA-Z0-9.-]+$/.test(userOrAddress)) {
+      return res.status(400).json({ error: 'Invalid characters in parameter' })
     }
-  )
+    // Probably an Ethereum address (0x prefix or longer than max Hive username)
+    if (userOrAddress.length > 16) {
+      // Validate Ethereum address format
+      if (!ethers.isAddress(userOrAddress)) {
+        return res.status(400).json({ error: 'Invalid Ethereum address' })
+      }
+      const wraps = pendingWraps.getWrapsByAddress(userOrAddress)
+      return res.json(wraps)
+    }
+    // Hive username
+    const wraps = pendingWraps.getWrapsByUsername(userOrAddress)
+    res.json(wraps)
+  })
 
-  app.get('/pending-hive-unwraps', (req, res) => {
+  app.get('/pending-hive-unwraps', (_req, res) => {
     res.json(Object.fromEntries(pendingUnwraps.getAllUnwraps()))
   })
 
-  app.get('/peers', (req, res) => {
+  app.get('/peers', (_req, res) => {
     res.json(peers.getAllPeers())
   })
 
-  app.get('/proposals', (req, res) => {
+  app.get('/proposals', (_req, res) => {
     const result = []
     for (const [key, value] of proposals) {
       result.push({
+        chain: value.chain,
         method: value.method,
         target: value.target,
+        nonce: value.nonce,
+        blockNum: value.blockNum,
         createdAt: value.createdAt,
         signatures: Object.fromEntries(value.signatures),
       })
     }
     res.json(result)
   })
-
-  // app.get('/operators', (req, res) => {
-  // res.json(operators.getOperatorsStatus())
-  // })
 }
