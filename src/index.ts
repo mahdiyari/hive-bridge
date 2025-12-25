@@ -32,12 +32,10 @@ hiveService.start()
 // Initialize governance system
 const governance = new Governance(hiveService)
 
-const addChainService = (
-  chainService: ChainService,
-  contractSymbol: 'HIVE' | 'HBD'
-) => {
+const addChainService = (chainService: ChainService) => {
   // Start the service
   chainService.start()
+  const contractSymbol = chainService.symbol
 
   hiveService.onTransfer(async (detail) => {
     const symbol = detail.amount.split(' ')[1]
@@ -97,6 +95,5 @@ const addChainService = (
   })
 }
 
-addedChainServices.forEach((item) => {
-  addChainService(item, item.symbol)
-})
+addChainService(addedChainServices.ETHHIVE)
+addChainService(addedChainServices.ETHHBD)
