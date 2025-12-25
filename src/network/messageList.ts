@@ -14,7 +14,7 @@ import { WebSocket } from 'ws'
 import { pendingUnwraps } from '@/Unwraps'
 import { ChainName } from '@/types/chain.types'
 import { pendingWraps } from '@/Wraps'
-import { ProposalKey, Signatures } from '@/types/governance.types'
+import { ProposalKey } from '@/types/governance.types'
 
 export const messageList = {
   /** The first message to send for handshake */
