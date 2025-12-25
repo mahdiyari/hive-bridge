@@ -1,13 +1,5 @@
-import { WebSocket } from 'ws'
 import { ChainName } from './chain.types'
-import { ProposalKey, Signatures } from './governance.types'
-
-// export interface Peer {
-//   id: string
-//   ws: WebSocket
-//   address: string | 'none'
-//   operator: string | 'none'
-// }
+import { ProposalKey } from './governance.types'
 
 export interface HelloMessage {
   type: 'HELLO'
@@ -84,7 +76,7 @@ export interface GovernanceMessage {
   data: {
     proposalKey: ProposalKey
     operator: string
-    signatures: Signatures
+    signature: string
   }
 }
 
