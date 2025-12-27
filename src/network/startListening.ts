@@ -75,7 +75,7 @@ export const startListening = () => {
       const proposalKey = msg.data.data.proposalKey
       const proposal = proposals.get(proposalKey)
       if (proposal) {
-        proposal.vote(msg.data.data.operator, msg.data.data.signatures)
+        proposal.vote(msg.data.data.operator, msg.data.data.signature)
       }
     } else if (type === 'REQUEST_GOVERNANCE') {
       const proposalKey = msg.data.data.proposalKey
@@ -86,7 +86,7 @@ export const startListening = () => {
           const signatures = proposal.signatures
           for (const [key, value] of signatures) {
             messageList.GOVERNANCE(
-              { operator: key, proposalKey, signatures: value },
+              { operator: key, proposalKey, signature: value },
               ws
             )
           }
