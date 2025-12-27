@@ -27,8 +27,8 @@ const chains: ChainSymbolKey[] = ['ETHHIVE', 'ETHHBD', 'HIVE']
 export const proposals: Map<ProposalKey, Proposal> = new Map()
 
 export class Governance {
-  private static readonly CLEANUP_INTERVAL_HOURS = 1
-  private static readonly STALE_ACTION_DAYS = 1
+  private readonly CLEANUP_INTERVAL_MINUTES = 10
+  private readonly STALE_ACTION_DAYS = 1
 
   private hive: HiveService
   private paused: boolean = false
@@ -41,7 +41,7 @@ export class Governance {
 
     setInterval(
       () => this.cleanupExpiredProposals(),
-      Governance.CLEANUP_INTERVAL_HOURS * 60 * 60 * 1000
+      this.CLEANUP_INTERVAL_MINUTES * 60 * 1000
     )
 
     this.hive.onTransfer(async (transfer: TransferBody) => {
@@ -54,7 +54,7 @@ export class Governance {
       }
       if (
         Date.now() - transfer.timestamp >
-        Governance.STALE_ACTION_DAYS * 24 * 60 * 60 * 1000
+        this.STALE_ACTION_DAYS * 24 * 60 * 60 * 1000
       ) {
         return
       }
@@ -140,6 +140,9 @@ export class Governance {
         if (this.isOperator) {
           this.signProposal(proposal)
         }
+        // If we started the node later, we won't be receiving signatures
+        // So ask for signatures
+        messageList.REQUEST_GOVERNANCE(proposalKey)
       }
       if (action === 'vote') {
         // Sign if this is from our operator
@@ -224,14 +227,16 @@ export class Governance {
     return this.paused
   }
 
-  private cleanupExpiredProposals() {
-    const expiredKeys: string[] = []
+  private async cleanupExpiredProposals() {
+    const toRemove: string[] = []
     for (const [key, proposal] of proposals) {
       if (proposal.isExpired()) {
-        expiredKeys.push(key)
+        toRemove.push(key)
+      } else if (await proposal.isDone()) {
+        toRemove.push(key)
       }
     }
-    expiredKeys.forEach((key) => {
+    toRemove.forEach((key) => {
       proposals.delete(key as ProposalKey)
       logger.info(`Cleaned up expired proposal: ${key}`)
     })
