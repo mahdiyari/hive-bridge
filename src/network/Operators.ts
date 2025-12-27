@@ -66,6 +66,7 @@ const updateOperators = async () => {
           logger.warning(
             `Operator ${op.username} changed their active key! Must update the contracts.`
           )
+          op.publicKey = pubKeys[0]
         }
       }
       newOps.push(username)
