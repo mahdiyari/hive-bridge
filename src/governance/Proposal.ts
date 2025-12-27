@@ -7,7 +7,7 @@ import {
   getPublicActiveKeys,
 } from '@/utils/hive.utils'
 import { logger } from '@/utils/logger'
-import { Signature, Transaction } from 'hive-tx'
+import { callRPC, Signature, Transaction } from 'hive-tx'
 import { getChainMessageHash } from './msgHash'
 import { hiveMultisigThreshold, operators } from '@/network/Operators'
 import { sleep } from '@/utils/sleep'
@@ -166,9 +166,6 @@ export class Proposal {
         )
         return
       }
-      if (this.hasEnoughVotes()) {
-        this.broadcastOnHive()
-      }
     } else {
       const chain = addedChainServices[this.chain]
       const msgHash = await getChainMessageHash(chain, this)
@@ -184,6 +181,11 @@ export class Proposal {
       }
     }
     this.signatures.set(operator, signature)
+    if (this.chain === 'HIVE') {
+      if (this.hasEnoughVotes()) {
+        this.broadcastOnHive()
+      }
+    }
   }
 
   isExpired(): boolean {
@@ -206,6 +208,29 @@ export class Proposal {
       return this.signatures.size >= addedChainServices.ETHHBD.multisigThreshold
     }
     return false
+  }
+
+  async isDone(): Promise<boolean> {
+    try {
+      if (this.chain === 'HIVE') {
+        if (this.trx) {
+          const trxId = this.trx.digest().txId
+          const res = await callRPC('condenser_api.get_transaction', [trxId])
+          if (res && res.transaction_id === trxId) {
+            return true
+          }
+        }
+      } else {
+        const nonce = await addedChainServices[this.chain].getNonce(this.method)
+        if (nonce > this.nonce) {
+          return true
+        }
+      }
+      return false
+    } catch {
+      // Can throw error if hive transaction is not found
+      return false
+    }
   }
 
   private broadcastOnHive() {
