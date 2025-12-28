@@ -68,6 +68,9 @@ export const startListening = () => {
       if (operators.length !== signatures.length) {
         return
       }
+      if (signatures.length > 20) {
+        return
+      }
       for (let i = 0; i < signatures.length; i++) {
         await pendingWraps.addSignature(msgHash, signatures[i], operators[i])
       }
