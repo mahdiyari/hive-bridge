@@ -140,9 +140,11 @@ export class Governance {
         if (this.isOperator) {
           this.signProposal(proposal)
         }
-        // If we started the node later, we won't be receiving signatures
-        // So ask for signatures
-        messageList.REQUEST_GOVERNANCE(proposalKey)
+        if (Date.now() - transfer.timestamp > 10_000) {
+          // If we started the node later, we won't be receiving signatures
+          // So ask for signatures
+          messageList.REQUEST_GOVERNANCE(proposalKey)
+        }
       }
       if (action === 'vote') {
         // Sign if this is from our operator
@@ -157,7 +159,7 @@ export class Governance {
           )
           return
         }
-        if (proposal.isExpired()) {
+        if (proposal.isExpired() || (await proposal.isDone())) {
           proposals.delete(proposalKey)
           return
         }
