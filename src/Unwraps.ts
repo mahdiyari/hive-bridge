@@ -62,13 +62,14 @@ class Unwraps {
     // Check and remove already unwrapped trxs
     setInterval(async () => {
       for (const [k, { trx }] of this.unwraps) {
-        const res = await callRPC('condenser_api.get_transaction', [
-          trx.digest().txId,
-        ])
-        if (!res) {
-          continue
-        }
-        this.unwraps.delete(k)
+        try {
+          const res = await callRPC('condenser_api.get_transaction', [
+            trx.digest().txId,
+          ])
+          if (res) {
+            this.unwraps.delete(k)
+          }
+        } catch {}
       }
     }, 20_000)
   }
