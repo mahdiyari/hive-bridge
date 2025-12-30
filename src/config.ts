@@ -15,7 +15,7 @@ export const config = {
   },
   hive: {
     treasury: 'bridge4',
-    genesis: 100468956,
+    genesis: 102501800,
     // More than one so we can cross-check
     nodes: [
       'https://api.hive.blog',
