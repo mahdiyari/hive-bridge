@@ -13,4 +13,4 @@ EXPOSE 3018
 
 LABEL git_repository="https://github.com/mahdiyari/hive-bridge"
 
-CMD ["npm", "run", "start"]
+CMD ["node", "--import", "tsx", "src/index.ts"]

@@ -1,7 +1,9 @@
 services:
   hive-bridge:
-    image: mahdiyari/hive-bridge:0.0.3
     container_name: hive-bridge
+    build:
+      context: .
+    restart: unless-stopped
     init: true
     tty: true
     ports:
@@ -10,4 +12,3 @@ services:
       - .env
     environment:
       - ENV_VAR=production
-    restart: unless-stopped
