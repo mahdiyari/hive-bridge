@@ -135,6 +135,15 @@ export class Governance {
           target,
           nonceOrBlockNum
         )
+        if (chain === 'HIVE') {
+          // skip already broadcasted proposals
+          while (!proposal.created) {
+            await sleep(100)
+          }
+          if (await proposal.isDone()) {
+            return
+          }
+        }
         proposals.set(proposalKey, proposal)
         logger.info(`Started proposal: ${proposalKey} by ${transfer.from}`)
         if (this.isOperator) {
