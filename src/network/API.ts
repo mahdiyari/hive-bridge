@@ -122,7 +122,12 @@ export const API = (app: Express) => {
   })
 
   app.get('/peers', (_req, res) => {
-    res.json(peers.getAllPeers())
+    const peersArray = peers.getAllPeers()
+    const temp: { id: string; address: string }[] = []
+    peersArray.forEach((value) => {
+      temp.push({ id: value.id, address: value.address || '' })
+    })
+    res.json(temp)
   })
 
   app.get('/proposals', (_req, res) => {
