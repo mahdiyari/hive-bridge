@@ -57,8 +57,8 @@ export const config = {
     service: {
       confirmations: 12,
       pollingInterval: 20_000, // 20 seconds
-      // Go back 225 blocks (45 minutes) when starting
-      historyDepth: 225,
+      // Each block ~12s - 7200 = 24 hours
+      historyDepth: 7200,
     },
   },
   network: {
