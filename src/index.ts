@@ -17,6 +17,8 @@ import { Governance } from './governance/Governance'
 
 const TREASURY = config.hive.treasury
 
+logger.info(`Treasury Hive account: ${TREASURY}`)
+
 p2pNetwork.start()
 // Wait for p2p network
 await sleep(5000)
@@ -80,6 +82,7 @@ const addChainService = (chainService: ChainService) => {
 
   // Handle unwraps
   chainService.onUnwrap(async (res) => {
+    logger.debug(`Detected Unwrap ${res.amount}:${res.username}:${res.trx}`)
     const amount = `${(Number(res.amount) / 1000).toFixed(3)} ${
       chainService.symbol
     }`
