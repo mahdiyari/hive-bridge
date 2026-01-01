@@ -1,6 +1,6 @@
-FROM node:22-slim
+FROM node:lts-slim
 
-RUN apt-get update && apt-get upgrade -y && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get upgrade -y && apt-get install -y openssl && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -11,4 +11,6 @@ COPY . .
 
 EXPOSE 3018
 
-CMD ["npm", "run", "start"]
+LABEL git_repository="https://github.com/mahdiyari/hive-bridge"
+
+CMD ["node", "--import", "tsx", "src/index.ts"]
