@@ -5,11 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:p2p": "tsx test-p2p.ts"
+    "start": "tsx src/index.ts"
   },
   "dependencies": {
     "@noble/ciphers": "^2.1.1",
