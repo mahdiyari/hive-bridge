@@ -75,12 +75,13 @@ class Unwraps {
   }
 
   public async addUnwrap(trxHash: string, trx: Transaction) {
+    // Skip already broadcasted transactions
     try {
-      // Skip already broadcasted transactions
-      const res = await callRPC('condenser_api.get_transaction', [
-        trx.digest().txId,
-      ])
-      if (!res) {
+      await callRPC('condenser_api.get_transaction', [trx.digest().txId])
+      // should throw if not exists
+    } catch (e) {
+      console.log(e instanceof Error)
+      if (e instanceof Error && e.message.includes('Unknown Transaction')) {
         const unwrap = new Unwrap(trx)
         this.unwraps.set(trxHash, unwrap)
         // If we are operator, sign and broadcast our signature
@@ -95,10 +96,6 @@ class Unwraps {
           })
         }
       }
-    } catch (e) {
-      // As long as retry works it should be fine
-      logger.error('Something went wrong. Retrying:', e)
-      this.addUnwrap(trxHash, trx)
     }
   }
 
