@@ -1,4 +1,4 @@
-import { callRPC, callWithQuorum, config as configHiveTx } from 'hive-tx'
+import { callWithQuorum, config as configHiveTx } from 'hive-tx'
 import { TransferBody, TransferHistory } from '@/types/hive.types'
 import { config } from '@/config'
 
