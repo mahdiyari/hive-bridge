@@ -47,6 +47,12 @@ class Peers {
           this.messages.delete(key)
         }
       })
+      this.peers.forEach((peer, key) => {
+        if (peer.ws.readyState !== WebSocket.OPEN) {
+          logger.debug('Removing CLOSED peer:', key)
+          this.removePeer(key)
+        }
+      })
     }, 5_000)
   }
 

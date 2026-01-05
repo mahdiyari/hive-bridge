@@ -300,6 +300,7 @@ class P2PNetwork {
     ws.onclose = () => {
       clearTimeout(handshakeTimeoutId)
       if (remoteId) {
+        logger.debug('Removing peer because closed:', remoteId)
         peers.removePeer(remoteId)
       }
     }
@@ -374,6 +375,7 @@ class P2PNetwork {
       peersToRemove
     )
     indices.forEach((index) => {
+      logger.debug('Pruning excess peer:', peerList[index].id)
       peers.removePeer(peerList[index].id)
     })
   }
