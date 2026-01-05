@@ -43,7 +43,14 @@ export class EthereumService implements ChainService {
       logger.warning('More than one Ethereum node is recommended')
       quorum = 1
     }
-    const providers = this.nodes.map((node) => new ethers.JsonRpcProvider(node))
+    const providers: ethers.JsonRpcProvider[] = []
+    this.nodes.forEach((node) => {
+      const pv = new ethers.JsonRpcProvider(node)
+      pv.on('error', (e) => {
+        logger.debug(node, e)
+      })
+      providers.push(pv)
+    })
     // FallbackProvier calls multiple nodes at the same time and cross-checks by quorum
     this.provider = new ethers.FallbackProvider(providers, undefined, {
       quorum: quorum,
