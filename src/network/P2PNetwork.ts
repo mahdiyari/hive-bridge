@@ -208,7 +208,7 @@ class P2PNetwork {
     try {
       // If we have already seen this message, ignore it
       if (peers.messageSeen(message.hash)) {
-        logger.warning('already seen this message', message)
+        // logger.warning('already seen this message', message)
         return
       }
       peers.addMessage(message.hash, message)
