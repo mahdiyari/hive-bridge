@@ -50,7 +50,8 @@ export const config = {
     // More than one so we can cross-check - quorum=2
     nodes: [
       'https://ethereum-sepolia-rpc.publicnode.com',
-      'https://0xrpc.io/sep',
+      // 'https://0xrpc.io/sep',
+      'https://ethereum-sepolia.gateway.tatum.io',
       'https://ethereum-sepolia-public.nodies.app',
       'https://sepolia.gateway.tenderly.co',
     ],
