@@ -78,6 +78,7 @@ class Peers {
 
     const newPeer = new Peer(id, ws, validAddress)
     this.peers.set(id, newPeer)
+    logger.debug('New peer added:', id)
   }
 
   public removePeer(id: string) {
