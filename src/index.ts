@@ -17,6 +17,13 @@ import { Governance } from './governance/Governance'
 
 const TREASURY = config.hive.treasury
 
+if (config.hive.operator.username && config.hive.operator.activeKey) {
+  logger.info(
+    'This node is running as operator by:',
+    config.hive.operator.username
+  )
+}
+
 logger.info(`Treasury Hive account: ${TREASURY}`)
 
 p2pNetwork.start()
