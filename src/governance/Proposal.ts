@@ -146,6 +146,9 @@ export class Proposal {
     if (this.signatures.get(operator)) {
       return
     }
+    if (!operators.get(operator)) {
+      return
+    }
     if (this.chain === 'HIVE') {
       if (!this.trx) {
         return
