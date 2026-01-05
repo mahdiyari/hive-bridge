@@ -146,7 +146,7 @@ export class Governance {
         }
         proposals.set(proposalKey, proposal)
         logger.info(`Started proposal: ${proposalKey} by ${transfer.from}`)
-        if (this.isOperator) {
+        if (this.isOperator && this.username === transfer.from) {
           this.signProposal(proposal)
         }
         if (Date.now() - transfer.timestamp > 10_000) {
@@ -172,7 +172,9 @@ export class Governance {
           proposals.delete(proposalKey)
           return
         }
-        this.signProposal(proposal)
+        if (this.isOperator && this.username === transfer.from) {
+          this.signProposal(proposal)
+        }
       }
     })
   }
