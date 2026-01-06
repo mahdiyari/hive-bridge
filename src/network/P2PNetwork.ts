@@ -172,7 +172,7 @@ class P2PNetwork {
     peerId?: string
   ) => {
     if (ws.readyState !== WebSocket.OPEN) {
-      logger.warning('WebSocket connection is not open. Removing the peer.')
+      logger.debug('WebSocket connection is not open. Removing the peer.')
       ws.close()
       return
     }
@@ -261,7 +261,7 @@ class P2PNetwork {
     let remoteId: string | undefined
     const handshakeTimeoutId = this.handshakeHandler.setupTimeout(ws, () => {
       if (!remoteId) {
-        logger.warning('Handshake timeout')
+        logger.debug('Handshake timeout')
       }
     })
     ws.onmessage = (event) => {

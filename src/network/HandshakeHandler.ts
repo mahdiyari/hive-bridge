@@ -55,7 +55,7 @@ export class HandshakeHandler {
     maxPeers: number
   ): HandshakeResult {
     if (peers.getAllPeers().length >= maxPeers * 2) {
-      logger.warning('Max peers reached, rejecting connection')
+      logger.debug('Max peers reached, rejecting connection')
       return { success: false }
     }
     if (message.type !== 'HELLO' || !message.data?.address) {
