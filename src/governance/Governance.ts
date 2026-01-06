@@ -156,8 +156,10 @@ export class Governance {
         }
       }
       if (action === 'vote') {
+        // Proposal creation can take some time, so wait here a bit
+        await sleep(15_000)
         // Sign if this is from our operator
-        if (!this.isOperator) {
+        if (!this.isOperator || this.username !== transfer.from) {
           return
         }
         const proposal = proposals.get(proposalKey)
@@ -172,9 +174,7 @@ export class Governance {
           proposals.delete(proposalKey)
           return
         }
-        if (this.isOperator && this.username === transfer.from) {
-          this.signProposal(proposal)
-        }
+        this.signProposal(proposal)
       }
     })
   }
@@ -185,8 +185,9 @@ export class Governance {
   ): Promise<string | null> {
     if (proposal.created) {
       if (proposal.trx) {
-        return proposal.trx.sign(PrivateKey.from(this.activeKey!))
-          .signatures[0]!
+        return PrivateKey.from(this.activeKey!)
+          .sign(proposal.trx.digest().digest)
+          .customToString()
       } else {
         return null
       }
