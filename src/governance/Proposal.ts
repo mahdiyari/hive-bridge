@@ -169,6 +169,7 @@ export class Proposal {
         )
         return
       }
+      this.trx.addSignature(signature)
     } else {
       const chain = addedChainServices[this.chain]
       const msgHash = await getChainMessageHash(chain, this)
