@@ -49,7 +49,9 @@ const addChainService = (chainService: ChainService) => {
       return
     }
     logger.debug(
-      `Detected Hive transfer ${detail.from}:${detail.amount}@${detail.timestamp}`
+      `Detected Hive transfer ${detail.from}:${detail.amount}:${
+        detail.memo
+      }@${new Date(detail.timestamp).toISOString()}`
     )
     const chain = detail.memo.split(':')[0]
     // Memo must start with chain name e.g. 'ETH:0x123...'
