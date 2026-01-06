@@ -36,14 +36,11 @@ while (operators.size === 0) {
 // Ignore the blocks before genesis
 const HIVE_GENESIS = config.hive.genesis
 const hiveService = new HiveService(HIVE_GENESIS)
-hiveService.start()
 
 // Initialize governance system
-const governance = new Governance(hiveService)
+new Governance(hiveService)
 
 const addChainService = (chainService: ChainService) => {
-  // Start the service
-  chainService.start()
   const contractSymbol = chainService.symbol
 
   hiveService.onTransfer(async (detail) => {
@@ -103,7 +100,13 @@ const addChainService = (chainService: ChainService) => {
     )
     await pendingUnwraps.addUnwrap(res.trx, trx)
   })
+
+  // Start the service after adding listeners
+  chainService.start()
 }
 
 addChainService(addedChainServices.ETHHIVE)
 addChainService(addedChainServices.ETHHBD)
+
+// Start hive service afterwards to not miss any transfers
+hiveService.start()
