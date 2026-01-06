@@ -1,9 +1,9 @@
 import { callWithQuorum, config as configHiveTx } from 'hive-tx'
 import { TransferBody, TransferHistory } from '@/types/hive.types'
 import { config } from '@/config'
+import { logger } from '@/utils/logger'
 
 export class HiveService {
-  private MIN_AMOUNT = config.hive.service.minAmount
   private POLLING_INTERVAL = config.hive.service.pollingInterval
   private TREASURY = config.hive.treasury
   private HISTORY_BATCH_SIZE = config.hive.service.historyBatchSize
@@ -39,62 +39,67 @@ export class HiveService {
    * @param count - Number of history items to fetch (defaults to batch size on first run)
    */
   private async processHistory(count?: number) {
-    const batchSize = count ?? this.HISTORY_BATCH_SIZE
-    let transfers = await this.getTransferHistory(-1, batchSize)
-    let len = transfers.length
-
-    if (!transfers || !len) {
-      return
-    }
-
-    // No new items in the history
-    if (transfers[len - 1][0] <= this.lastHistoryId) {
-      return
-    }
-
-    // Fetch all items as long as not already processed
-    while (
-      len === batchSize &&
-      transfers[0][0] > this.lastHistoryId &&
-      transfers[0][1].block >= this.genesisBlock
-    ) {
-      // History includes the start item as well so we don't want that again
-      const start = transfers[0][0] - 1
-      const temp = await this.getTransferHistory(start, batchSize)
-      len = temp.length
-      transfers = temp.concat(transfers)
-    }
-
-    for (let i = 0; i < transfers.length; i++) {
-      const historyId = transfers[i][0]
-      const blockNum = transfers[i][1].block
-      const timestamp = new Date(transfers[i][1].timestamp + '.000Z').getTime()
-      const trxId = transfers[i][1].trx_id
-      const opInTrx = transfers[i][1].op_in_trx
-
-      // We have already processed till lastHistoryId
-      if (historyId <= this.lastHistoryId || blockNum < this.genesisBlock) {
-        continue
+    try {
+      const batchSize = count ?? this.HISTORY_BATCH_SIZE
+      let transfers = await this.getTransferHistory(-1, batchSize)
+      let len = transfers.length
+      if (!transfers || !len) {
+        return
       }
-
-      const opBody = transfers[i][1].op[1]
-      if (opBody.to !== this.TREASURY) {
-        // Outgoing transfers - ignore for now
+      // No new items in the history
+      if (transfers[len - 1][0] <= this.lastHistoryId) {
+        return
       }
-      if (opBody.to === this.TREASURY) {
+      // Fetch all items as long as not already processed
+      while (
+        len === batchSize &&
+        transfers[0][0] > this.lastHistoryId &&
+        transfers[0][1].block >= this.genesisBlock
+      ) {
+        // History includes the start item as well so we don't want that again
+        const start = transfers[0][0] - 1
+        const temp = await this.getTransferHistory(start, batchSize)
+        len = temp.length
+        transfers = temp.concat(transfers)
+      }
+      const allTransfers: TransferBody[] = []
+      for (let i = 0; i < transfers.length; i++) {
+        const historyId = transfers[i][0]
+        const blockNum = transfers[i][1].block
+        const timestamp = new Date(
+          transfers[i][1].timestamp + '.000Z'
+        ).getTime()
+        const trxId = transfers[i][1].trx_id
+        const opInTrx = transfers[i][1].op_in_trx
+        // We have already processed till lastHistoryId
+        if (historyId <= this.lastHistoryId || blockNum < this.genesisBlock) {
+          continue
+        }
+        const opBody = transfers[i][1].op[1]
+        if (opBody.to !== this.TREASURY) {
+          // Outgoing transfers - ignore for now
+        }
+        if (opBody.to === this.TREASURY) {
+          allTransfers.push({ ...opBody, blockNum, timestamp, trxId, opInTrx })
+        }
+      }
+      this.lastHistoryId = transfers[transfers.length - 1][0]
+      allTransfers.reverse()
+      allTransfers.forEach((transferBody) => {
         const customEvent = new CustomEvent('transfer', {
-          detail: { ...opBody, blockNum, timestamp, trxId, opInTrx },
+          detail: transferBody,
         })
         this.event.dispatchEvent(customEvent)
+      })
+    } catch (e) {
+      logger.debug('Possibly a network error when fetching Hive history:', e)
+    } finally {
+      // Run only once - set up polling for new transfers
+      if (!count) {
+        setInterval(() => {
+          this.processHistory(this.HISTORY_POLLING_SIZE)
+        }, this.POLLING_INTERVAL)
       }
-    }
-    this.lastHistoryId = transfers[transfers.length - 1][0]
-
-    // Run only once - set up polling for new transfers
-    if (!count) {
-      setInterval(() => {
-        this.processHistory(this.HISTORY_POLLING_SIZE)
-      }, this.POLLING_INTERVAL)
     }
   }
 
