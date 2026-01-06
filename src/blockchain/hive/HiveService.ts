@@ -62,7 +62,6 @@ export class HiveService {
         len = temp.length
         transfers = temp.concat(transfers)
       }
-      const allTransfers: TransferBody[] = []
       for (let i = 0; i < transfers.length; i++) {
         const historyId = transfers[i][0]
         const blockNum = transfers[i][1].block
@@ -80,17 +79,20 @@ export class HiveService {
           // Outgoing transfers - ignore for now
         }
         if (opBody.to === this.TREASURY) {
-          allTransfers.push({ ...opBody, blockNum, timestamp, trxId, opInTrx })
+          const transferBody = {
+            ...opBody,
+            blockNum,
+            timestamp,
+            trxId,
+            opInTrx,
+          }
+          const customEvent = new CustomEvent('transfer', {
+            detail: transferBody,
+          })
+          this.event.dispatchEvent(customEvent)
         }
       }
       this.lastHistoryId = transfers[transfers.length - 1][0]
-      allTransfers.reverse()
-      allTransfers.forEach((transferBody) => {
-        const customEvent = new CustomEvent('transfer', {
-          detail: transferBody,
-        })
-        this.event.dispatchEvent(customEvent)
-      })
     } catch (e) {
       logger.debug('Possibly a network error when fetching Hive history:', e)
     } finally {
