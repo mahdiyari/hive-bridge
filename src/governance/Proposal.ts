@@ -11,6 +11,7 @@ import { callRPC, Signature, Transaction } from 'hive-tx'
 import { getChainMessageHash } from './msgHash'
 import { hiveMultisigThreshold, operators } from '@/network/Operators'
 import { sleep } from '@/utils/sleep'
+import { messageList } from '@/network/messageList'
 
 const treasury = config.hive.treasury
 
@@ -63,6 +64,20 @@ export class Proposal {
       this.created = true
     }
     this.proposalKey = `${chain}:${method}:${target}:${blockNum}`
+
+    const checkInterval = setInterval(async () => {
+      this.checkAndAskForSignatures()
+      if (this.isExpired() || (await this.isDone())) {
+        clearInterval(checkInterval)
+      }
+    }, 30_000)
+  }
+
+  // Check periodically and if not enough signatures, ask peers
+  private checkAndAskForSignatures() {
+    if (!this.hasEnoughVotes()) {
+      messageList.REQUEST_GOVERNANCE(this.proposalKey)
+    }
   }
 
   private async buildAddSigner(username: string, blockNum: number) {
