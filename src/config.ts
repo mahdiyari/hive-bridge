@@ -73,7 +73,7 @@ export const config = {
     },
     operators: {
       timeout: 30_000, // 30 seconds
-      updateInterval: 300_000, // 5 minutes
+      updateInterval: 60_000, // 1 minute
     },
     message: {
       maxAgeMs: 8_000, // 8 seconds
