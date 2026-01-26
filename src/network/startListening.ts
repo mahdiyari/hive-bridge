@@ -77,11 +77,11 @@ export const startListening = () => {
       }
     } else if (type === 'GOVERNANCE') {
       const proposalKey = msg.data.data.proposalKey
-      const proposal = proposals.get(proposalKey)
-      if (!proposal) {
+      if (!proposals.has(proposalKey)) {
         // We could be late a bit in proposal creation so wait here
         await sleep(30_000)
       }
+      const proposal = proposals.get(proposalKey)
       if (proposal) {
         proposal.vote(msg.data.data.operator, msg.data.data.signature)
       }
