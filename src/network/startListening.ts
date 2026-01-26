@@ -9,6 +9,7 @@ import { sha256String } from '@/utils/p2p.utils'
 import { Signature } from 'hive-tx'
 import { config } from '@/config'
 import { proposals } from '@/governance/Governance'
+import { sleep } from '@/utils/sleep'
 
 export const startListening = () => {
   p2pNetwork.onMessage(async (msg) => {
@@ -77,6 +78,10 @@ export const startListening = () => {
     } else if (type === 'GOVERNANCE') {
       const proposalKey = msg.data.data.proposalKey
       const proposal = proposals.get(proposalKey)
+      if (!proposal) {
+        // We could be late a bit in proposal creation so wait here
+        await sleep(30_000)
+      }
       if (proposal) {
         proposal.vote(msg.data.data.operator, msg.data.data.signature)
       }
