@@ -97,7 +97,7 @@ class Wraps {
         const now = Date.now()
         if (
           wrap.timestamp < now - this.cutoff &&
-          this.pendingWraps.size > 1000
+          this.pendingWraps.size > 100
         ) {
           this.removePendingWrap(msgHash)
           continue
@@ -106,16 +106,18 @@ class Wraps {
         if (wrap.signatures.length < wrap.chainInstance.multisigThreshold) {
           messageList.REQUEST_WRAP_SIGNATURES(msgHash)
           await sleep(50)
-          continue
         }
-        const minted = await wrap.chainInstance.hasMinted(
-          wrap.data.trxId,
-          wrap.data.opInTrx
-        )
-        if (minted) {
-          this.removePendingWrap(msgHash)
+        // If older than 10 minutes, check if already minted
+        if (wrap.timestamp < now - 600_000) {
+          const minted = await wrap.chainInstance.hasMinted(
+            wrap.data.trxId,
+            wrap.data.opInTrx
+          )
+          if (minted) {
+            this.removePendingWrap(msgHash)
+          }
+          await sleep(50)
         }
-        await sleep(50)
       }
     } catch (e) {
       logger.debug(e)
