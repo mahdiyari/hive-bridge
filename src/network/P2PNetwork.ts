@@ -11,17 +11,16 @@ import { createServer as createSecureServer } from 'node:https'
 import { WebSocketServer, WebSocket } from 'ws'
 import { startListening } from './startListening'
 import { config } from '@/config'
-import { getMyIP } from '@/utils/getMyIP'
 import { peers } from './Peers'
 import { operators } from './Operators'
-import { messageHash } from '@/utils/p2p.utils'
+import { messageHash, uuidValidate } from '@/utils/p2p.utils'
 import { logger } from '@/utils/logger'
 import { API } from './API'
 import { messageList } from './messageList'
-import { MessageProcessor } from './MessageProcessor'
-import { HandshakeHandler } from './HandshakeHandler'
-import { PeerDiscovery } from './PeerDiscovery'
+import { messageParser } from './messageParser'
 import { generateSelfSignedCert } from '@/utils/ssl.tools'
+import { IncomingMessage } from 'node:http'
+import { sleep } from '@/utils/sleep'
 
 class P2PNetwork {
   // Configuration object
@@ -40,42 +39,13 @@ class P2PNetwork {
   private port: number
   /** Randomly generated uuidv4 */
   private myId: string
-  /** It will be automatically saved as ipv4 or [ipv6] */
-  private myIP: string = 'none'
   private event = new EventTarget()
 
-  // Services
-  private messageProcessor: MessageProcessor
-  private handshakeHandler: HandshakeHandler
-  private peerDiscovery: PeerDiscovery
-
-  private personalMessageTypes = [
-    'HELLO',
-    'HELLO_ACK',
-    'REQUEST_PEERS',
-    'PEER_LIST',
-    'REQUEST_WRAP_SIGNATURES',
-    'REQUEST_HIVE_SIGNATURES',
-  ]
-
+  // TODO: zod or similar for message type/value verification
   constructor() {
     this.knownPeers = config.general.knownPeers?.split(/,\s?/) || []
     this.port = config.general.port
     this.myId = randomUUID()
-
-    // Initialize services
-    this.messageProcessor = new MessageProcessor(this.cfg.maxMessageSize)
-    this.handshakeHandler = new HandshakeHandler(
-      this.myId,
-      this.cfg.handshakeTimeout
-    )
-    this.peerDiscovery = new PeerDiscovery(
-      () => `${this.myIP}:${this.port}`,
-      this.cfg.maxPeers,
-      this.cfg.peerDiscoverySleepMs,
-      (address) => this.connectToPeer(address),
-      (address) => this.isAlreadyConnected(address)
-    )
   }
 
   /** Start the P2P network */
@@ -111,72 +81,18 @@ class P2PNetwork {
   public sendMessage(message: Message, exception?: string) {
     for (const peer of peers.getAllPeers()) {
       if (peer.id !== exception) {
-        this.wsSend(peer.ws, message, peer.id)
+        this.wsSend(peer.ws, message)
       }
     }
   }
 
-  /** Get the public IP and start listening for incoming connections */
-  private async startServer() {
-    const ip = await getMyIP()
-    if (isIPv6(ip.ip)) {
-      this.myIP = `[${ip.ip}]`
-    } else if (isIPv4(ip.ip)) {
-      this.myIP = ip.ip
-    }
-    const app = express()
-    // Start API
-    API(app)
-    const { cert, key } = await generateSelfSignedCert()
-    const server = createSecureServer({ cert, key }, app)
-    const wss = new WebSocketServer({ server, path: '/' })
-    wss.on('connection', (ws) => {
-      return this.handleIncomingConnection(ws)
-    })
-    const host = config.general.host
-    server.listen(this.port, host, () => {
-      logger.info(`API Server running on https://${host}:${this.port}`)
-      logger.info(
-        `WebSocket server running on wss://${host}:${this.port} ID: ${this.myId}`
-      )
-    })
-  }
-
-  /** Handles the incoming connection and handshake from peers */
-  private handleIncomingConnection(ws: WebSocket) {
-    this.setupWebSocketHandlers(ws, {
-      isIncoming: true,
-      expectedHandshake: 'HELLO',
-      onHandshake: (message) => {
-        const result = this.handshakeHandler.processIncomingHandshake(
-          message,
-          this.cfg.maxPeers
-        )
-
-        if (result.success) {
-          return {
-            ...result,
-            onSuccess: () => messageList.HELLO_ACK(ws, this.myId),
-          }
-        }
-
-        return result
-      },
-    })
-  }
-
   /** Add timestamp and hash the message before sending to ws */
-  public wsSend = (
-    ws: WebSocket,
-    msg: Message | FullMessage,
-    peerId?: string
-  ) => {
+  public wsSend = (ws: WebSocket, msg: Message | FullMessage) => {
     if (ws.readyState !== WebSocket.OPEN) {
       logger.debug('WebSocket connection is not open. Removing the peer.')
       ws.close()
       return
     }
-
     let fullMessage: FullMessage
     if ('hash' in msg) {
       // The message is already FullMessage and is a repeat
@@ -192,6 +108,141 @@ class P2PNetwork {
     ws.send(encodedMsg)
   }
 
+  /** Start listening for incoming connections */
+  private async startServer() {
+    const app = express()
+    // Start API
+    API(app)
+    const { cert, key } = await generateSelfSignedCert()
+    const server = createSecureServer({ cert, key }, app)
+    const wss = new WebSocketServer({
+      server,
+      path: '/',
+      maxPayload: config.network.p2p.maxMessageSize,
+    })
+    wss.on('connection', (ws, request) => {
+      return this.handleIncomingConnection(ws, request)
+    })
+    const host = config.general.host
+    server.listen(this.port, host, () => {
+      logger.info(`API Server running on https://${host}:${this.port}`)
+      logger.info(
+        `WebSocket server running on wss://${host}:${this.port} ID: ${this.myId}`
+      )
+    })
+  }
+
+  /** Handles the incoming connection and handshake from peers */
+  private handleIncomingConnection(ws: WebSocket, request: IncomingMessage) {
+    if (peers.getAllPeers().length >= this.cfg.maxPeers * 2) {
+      logger.debug('Max peers reached, rejecting connection')
+      return ws.close()
+    }
+    const ip = request.socket.remoteAddress
+    if (!ip) {
+      return ws.close()
+    }
+    this.handleHandshake(ws, ip, true)
+  }
+
+  /**
+   * Handles the outgoing connections
+   * peerAddress without ws:// or wss:// e.g. 1.1.1.1:3018
+   */
+  private connectToPeer(peerAddress: string) {
+    if (peers.getAllPeers().length >= this.cfg.maxPeers * 2) {
+      logger.debug("Max peers reached, won't connect to new peers")
+      return
+    }
+    const url = new URL(`wss://${peerAddress}`)
+    const { hostname, port } = url
+    if (this.isAlreadyConnected(hostname, Number(port))) {
+      return
+    }
+    try {
+      const ws = new WebSocket(url, {
+        rejectUnauthorized: false,
+        maxPayload: config.network.p2p.maxMessageSize,
+      })
+      this.handleHandshake(ws, hostname, false, Number(port))
+    } catch {
+      logger.warning(`Failed to connect to known peer ${peerAddress}`)
+    }
+  }
+
+  private handleHandshake(
+    ws: WebSocket,
+    ip: string,
+    incoming: boolean,
+    port?: number
+  ) {
+    let handshaken = false
+    // Timeout if not handshaken
+    const timeoutTimer = setTimeout(() => {
+      if (!handshaken) {
+        ws.close()
+      }
+    }, this.cfg.handshakeTimeout)
+
+    ws.on('error', (e) => {
+      logger.debug(e)
+      // will close after error
+    })
+    ws.on('close', (e) => {
+      clearTimeout(timeoutTimer)
+    })
+    let peerId = ''
+    ws.on('message', (data) => {
+      try {
+        const message = messageParser(data.toString())
+        if (!handshaken) {
+          const expectedType = incoming ? 'HELLO' : 'HELLO_ACK'
+          if (message.type !== expectedType) {
+            return ws.close()
+          } else {
+            peerId = message.data?.peerId
+            if (
+              !peerId ||
+              typeof peerId !== 'string' ||
+              !uuidValidate(peerId) ||
+              peerId === this.myId
+            ) {
+              return ws.close()
+            }
+            if (message.type === 'HELLO') {
+              port = message.data?.port
+              if (
+                !port ||
+                typeof port !== 'number' ||
+                isNaN(port) ||
+                port < 1 ||
+                port > 65535
+              ) {
+                return ws.close()
+              }
+              messageList.HELLO_ACK(ws, this.myId, peerId)
+            } else {
+              const remoteId = message.data?.remoteId
+              if (!remoteId || remoteId !== this.myId) {
+                return ws.close()
+              }
+            }
+            if (this.isAlreadyConnected(ip, Number(port))) {
+              return ws.close()
+            }
+            peers.addPeer(peerId, ws, ip, port!)
+            handshaken = true
+            clearTimeout(timeoutTimer)
+          }
+        } else {
+          this.handleRegularMessage(message, peerId, ws)
+        }
+      } catch {
+        ws.close()
+      }
+    })
+  }
+
   /** Regular messages after the initial handshake will be handled here */
   private handleRegularMessage(
     message: FullMessage,
@@ -200,15 +251,13 @@ class P2PNetwork {
   ) {
     const recentMessageCount = this.messagesInLastSecond.get(peerId) || 0
     if (recentMessageCount > this.cfg.messageRateLimit) {
-      logger.warning('Rate limit exceeded for peer:', peerId)
+      logger.debug('Rate limit exceeded for peer:', peerId)
       return
     }
     this.messagesInLastSecond.set(peerId, recentMessageCount + 1)
-
     try {
       // If we have already seen this message, ignore it
       if (peers.messageSeen(message.hash)) {
-        // logger.warning('already seen this message', message)
         return
       }
       peers.addMessage(message.hash, message)
@@ -221,11 +270,11 @@ class P2PNetwork {
       })
       this.event.dispatchEvent(messageEvent)
       // Repeat to other peers if not personal communication
-      if (!this.personalMessageTypes.includes(message.type)) {
+      if (!message.private) {
         this.sendMessage(message, peerId)
       }
     } catch {
-      logger.warning('malformed message from', peerId)
+      logger.debug('malformed message from', peerId)
       // Remove the peer on malformed message?
       ws.close()
     }
@@ -238,105 +287,12 @@ class P2PNetwork {
     }
   }
 
+  // TODO: make it possible to have to concurrent connections
   /** Check if already connected to a peer address */
-  private isAlreadyConnected(peerAddress: string): boolean {
-    return peers.getAllPeers().some((peer) => peer.address === peerAddress)
-  }
-
-  /** Unified WebSocket handler setup for both incoming and outgoing connections */
-  private setupWebSocketHandlers(
-    ws: WebSocket,
-    options: {
-      isIncoming: boolean
-      expectedHandshake: 'HELLO' | 'HELLO_ACK'
-      address?: string
-      onHandshake: (message: FullMessage) => {
-        success: boolean
-        remoteId?: string
-        address?: string
-        onSuccess?: () => void
-      }
-    }
-  ) {
-    let remoteId: string | undefined
-    const handshakeTimeoutId = this.handshakeHandler.setupTimeout(ws, () => {
-      if (!remoteId) {
-        logger.debug('Handshake timeout')
-      }
-    })
-    ws.onmessage = (event) => {
-      const rawData = event.data.toString()
-      const message = this.messageProcessor.parse(rawData)
-      if (!message) {
-        return ws.close()
-      }
-      // Handle handshake
-      if (!remoteId) {
-        if (
-          !this.handshakeHandler.validateHandshake(
-            message,
-            options.expectedHandshake
-          )
-        ) {
-          return ws.close()
-        }
-        const result = options.onHandshake(message)
-        if (!result.success) {
-          return ws.close()
-        }
-        remoteId = result.remoteId
-        clearTimeout(handshakeTimeoutId)
-        peers.addPeer(remoteId!, ws, result.address || null)
-        result.onSuccess?.()
-        return
-      }
-      // Handle regular messages
-      if (peers.getWS(remoteId)) {
-        return this.handleRegularMessage(message, remoteId, ws)
-      }
-      ws.close()
-    }
-
-    ws.onclose = () => {
-      clearTimeout(handshakeTimeoutId)
-      if (remoteId) {
-        logger.debug('Removing peer because closed:', remoteId)
-        peers.removePeer(remoteId)
-      }
-    }
-
-    ws.onerror = () => {
-      const context = options.address || remoteId || 'unknown'
-      logger.error(`WebSocket error:`, context)
-    }
-  }
-
-  /** peerAddress without ws:// or wss:// */
-  private connectToPeer(peerAddress: string) {
-    if (this.isAlreadyConnected(peerAddress)) {
-      return
-    }
-    try {
-      const ws = new WebSocket(`wss://${peerAddress}`, {
-        rejectUnauthorized: false,
-      })
-      ws.onopen = () => {
-        messageList.HELLO(ws, this.myId, this.myIP, this.port)
-      }
-      this.setupWebSocketHandlers(ws, {
-        isIncoming: false,
-        expectedHandshake: 'HELLO_ACK',
-        address: peerAddress,
-        onHandshake: (message) => {
-          return this.handshakeHandler.processOutgoingHandshake(
-            message,
-            peerAddress
-          )
-        },
-      })
-    } catch {
-      logger.error(`Failed to connect to known peer ${peerAddress}`)
-    }
+  private isAlreadyConnected(ip: string, port: number): boolean {
+    return peers
+      .getAllPeers()
+      .some((peer) => peer.ip === ip && peer.port === port)
   }
 
   // Operators send a heartbeat message every 90s
@@ -356,11 +312,11 @@ class P2PNetwork {
   private checkPeers() {
     const publicPeers = peers.getPublicPeers()
     const privatePeers = peers.getPrivatePeers()
-
     this.pruneExcessPeers(privatePeers)
     this.pruneExcessPeers(publicPeers)
-
-    this.peerDiscovery.requestPeersIfNeeded()
+    if (publicPeers.length < this.cfg.maxPeers) {
+      messageList.REQUEST_PEERS()
+    }
   }
 
   /** Remove random peers if we have too many */
@@ -381,14 +337,28 @@ class P2PNetwork {
   }
 
   private handlePeerList() {
-    this.event.addEventListener('peerMessage', async (e) => {
-      const pe = e as PeerMessageEvent
-      const msg = pe.detail.data
-
+    this.onMessage(async (detail) => {
+      const msg = detail.data
+      const sender = detail.sender
       if (msg.type === 'PEER_LIST') {
-        await this.peerDiscovery.handlePeerListResponse(msg.data.peers)
+        for (const address of msg.data.peers) {
+          if (peers.getPublicPeers().length >= this.cfg.maxPeers) {
+            return
+          }
+          logger.debug('Connecting to discovered peer:', address)
+          this.connectToPeer(address)
+          await sleep(this.cfg.peerDiscoverySleepMs)
+        }
       } else if (msg.type === 'REQUEST_PEERS') {
-        this.peerDiscovery.handlePeerListRequest(pe.detail.sender)
+        const pubPeers = peers.getPublicPeers()
+        if (pubPeers.length === 0) {
+          return
+        }
+        const addresses = pubPeers.map((peer) => `${peer.ip}:${peer.port}`)
+        const ws = peers.getWS(sender)
+        if (ws) {
+          messageList.PEER_LIST(ws, addresses)
+        }
       }
     })
   }
