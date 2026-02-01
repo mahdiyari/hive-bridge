@@ -359,7 +359,16 @@ class P2PNetwork {
         if (pubPeers.length === 0) {
           return
         }
-        const addresses = pubPeers.map((peer) => `${peer.ip}:${peer.port}`)
+        const addresses: string[] = []
+        pubPeers.forEach((peer) => {
+          // Filter out the senders address
+          if (peer.id !== sender) {
+            addresses.push(`${peer.ip}:${peer.port}`)
+          }
+        })
+        if (addresses.length === 0) {
+          return
+        }
         const ws = peers.getWS(sender)
         if (ws) {
           messageList.PEER_LIST(ws, addresses)
