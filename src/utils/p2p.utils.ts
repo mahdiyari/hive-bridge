@@ -2,7 +2,8 @@ import { config } from '@/config'
 import { FullMessage } from '@/types/network.types'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex } from '@noble/hashes/utils.js'
-import { Agent } from 'undici'
+import axios from 'axios'
+import { Agent } from 'https'
 
 /** Return true if the peer address is accessible at /status
  * - has a 2s timeout
@@ -16,16 +17,13 @@ export const checkPeerStatus = (
     const myTimer = setTimeout(() => {
       resolve(false)
     }, timeout)
-    fetch('https://' + address + '/status', {
-      dispatcher: new Agent({
-        connect: {
-          rejectUnauthorized: false,
-        },
-      }),
-    })
-      .then((res) => res.json())
-      .then((res: any) => {
-        if (res.status === 'OK') {
+    axios
+      .get('https://' + address + '/status', {
+        httpsAgent: new Agent({ rejectUnauthorized: false }),
+      })
+      .then((res) => {
+        // TODO: not tested yet
+        if (res.data.status === 'OK') {
           resolve(true)
           return
         }
@@ -56,7 +54,7 @@ export const messageChecksum = (message: FullMessage) => {
     }
     if (
       isNaN(jsonMsg.timestamp) ||
-      Date.now() - jsonMsg.timestamp > MAX_VALID_TIME
+      Math.abs(Date.now() - jsonMsg.timestamp) > MAX_VALID_TIME
     ) {
       return false
     }
