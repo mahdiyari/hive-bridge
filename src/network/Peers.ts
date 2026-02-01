@@ -2,29 +2,28 @@ import { FullMessage } from '@/types/network.types'
 import { WebSocket } from 'ws'
 import { logger } from '@/utils/logger'
 import { checkPeerStatus } from '@/utils/p2p.utils'
+import { isIPv6 } from 'net'
 
 class Peer {
-  public id: string
-  public ws: WebSocket
-  public address: string | null
-  // public lastSeen: number
-
-  constructor(id: string, ws: WebSocket, address: string | null = null) {
-    if (!id || !ws) {
-      throw new Error('Peer id and WebSocket are required')
-    }
-    this.id = id
-    this.ws = ws
-    this.address = address
-    // this.lastSeen = Date.now()
+  public ip: string
+  public isPublic = false
+  constructor(
+    public id: string,
+    public ws: WebSocket,
+    ip: string,
+    public port: number
+  ) {
+    this.ip = isIPv6(ip) ? `[${ip}]` : ip
+    this.checkPublic()
   }
+  // Maybe do ping/pong in an interval and disconnect if not seen recently?
+  // Don't think it's necessary
+  // Maybe if there are network problems later
 
-  // public updateLastSeen(): void {
-  //   this.lastSeen = Date.now()
-  // }
-
-  public isPublic(): boolean {
-    return this.address !== null
+  private checkPublic() {
+    checkPeerStatus(`${this.ip}:${this.port}`).then((res) => {
+      this.isPublic = res
+    })
   }
 }
 
@@ -35,12 +34,6 @@ class Peers {
 
   constructor() {
     setInterval(() => {
-      // Remove peers that are not seen recently - Maybe not - ws should handle it?
-      // this.peers.forEach((value, key) => {
-      // 	if (Date.now() - value.lastSeen > this.DISCONNECT_TIME) {
-      // 		this.removePeer(key)
-      // 	}
-      // })
       // Remove older messages
       this.messages.forEach((value, key) => {
         if (Date.now() - value.timestamp > this.MESSAGE_LIFESPAN) {
@@ -60,29 +53,13 @@ class Peers {
     return this.peers.get(id)?.ws
   }
 
-  public async addPeer(
-    id: string,
-    ws: WebSocket,
-    address: string | null = null
-  ) {
-    if (!id || !ws) {
-      throw new Error('Peer id and WebSocket are required')
-    }
-
+  public async addPeer(id: string, ws: WebSocket, ip: string, port: number) {
     const peer = this.peers.get(id)
     if (peer) {
       // We are already connected to this peer so close the new connection
       return ws.close()
     }
-
-    // Check the public accessibility of the target peer
-    let validAddress: string | null = null
-    if (address) {
-      const isValid = await checkPeerStatus(address)
-      validAddress = isValid ? address : null
-    }
-
-    const newPeer = new Peer(id, ws, validAddress)
+    const newPeer = new Peer(id, ws, ip, port)
     this.peers.set(id, newPeer)
     logger.debug('New peer added:', id)
   }
@@ -106,7 +83,7 @@ class Peers {
   public getPublicPeers(): Peer[] {
     const publicPeers: Peer[] = []
     this.peers.forEach((peer) => {
-      if (peer.isPublic()) {
+      if (peer.isPublic) {
         publicPeers.push(peer)
       }
     })
@@ -117,7 +94,7 @@ class Peers {
   public getPrivatePeers(): Peer[] {
     const privatePeers: Peer[] = []
     this.peers.forEach((peer) => {
-      if (!peer.isPublic()) {
+      if (!peer.isPublic) {
         privatePeers.push(peer)
       }
     })
@@ -128,14 +105,6 @@ class Peers {
   public getAllPeers(): Peer[] {
     return Array.from(this.peers.values())
   }
-
-  /** Update lastSeen and operator name of the peer sending heartbeat if we are connected */
-  // public receivedHeartbeat(id: string, operator: string): void {
-  //   const peer = this.peers.get(id)
-  //   if (peer) {
-  //     peer.updateLastSeen()
-  //   }
-  // }
 
   public messageSeen(hash: string) {
     return this.messages.has(hash)
