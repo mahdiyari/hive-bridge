@@ -124,8 +124,8 @@ export const API = (app: Express) => {
   app.get('/peers', (_req, res) => {
     const peersArray = peers.getAllPeers()
     const temp: { id: string; address: string }[] = []
-    peersArray.forEach((value) => {
-      temp.push({ id: value.id, address: value.address || '' })
+    peersArray.forEach((peer) => {
+      temp.push({ id: peer.id, address: `${peer.ip}:${peer.port}` || '' })
     })
     res.json(temp)
   })
