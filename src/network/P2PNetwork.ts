@@ -184,6 +184,11 @@ class P2PNetwork {
       }
     }, this.cfg.handshakeTimeout)
 
+    ws.on('open', () => {
+      if (!incoming) {
+        messageList.HELLO(ws, this.myId, this.port)
+      }
+    })
     ws.on('error', (e) => {
       logger.debug(e)
       // will close after error
