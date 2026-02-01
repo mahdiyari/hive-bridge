@@ -18,23 +18,26 @@ import { ProposalKey } from '@/types/governance.types'
 
 export const messageList = {
   /** The first message to send for handshake */
-  HELLO: (ws: WebSocket, myId: string, myIP: string, port: number) => {
+  HELLO: (ws: WebSocket, myId: string, port: number) => {
     const helloMsg: HelloMessage = {
       type: 'HELLO',
       data: {
         peerId: myId,
-        address: `${myIP}:${port}`,
+        port,
       },
+      private: true,
     }
     p2pNetwork.wsSend(ws, helloMsg)
   },
-  /** Response to HELLO to finish handshake */
-  HELLO_ACK: (ws: WebSocket, myId: string) => {
+  /** Response to HELLO to finish handshake - return remoteId for verification */
+  HELLO_ACK: (ws: WebSocket, myId: string, remoteId: string) => {
     const ackMsg: HelloAckMessage = {
       type: 'HELLO_ACK',
       data: {
         peerId: myId,
+        remoteId,
       },
+      private: true,
     }
     p2pNetwork.wsSend(ws, ackMsg)
   },
@@ -57,6 +60,7 @@ export const messageList = {
         ...msg,
         signature,
       },
+      private: false,
     })
   },
 
@@ -67,6 +71,7 @@ export const messageList = {
       data: {
         trxHash,
       },
+      private: true,
     })
   },
   /** Send signatures of an unwrap to all peers or to just provided peer */
@@ -83,6 +88,7 @@ export const messageList = {
         operators: operators ? operators : unwrap.operators,
         signatures: signatures ? signatures : unwrap.trx.transaction.signatures,
       },
+      private: ws ? true : false,
     }
     if (ws) {
       p2pNetwork.wsSend(ws, message)
@@ -93,7 +99,7 @@ export const messageList = {
 
   /** Ask for more peer addresses */
   REQUEST_PEERS: () => {
-    p2pNetwork.sendMessage({ type: 'REQUEST_PEERS' })
+    p2pNetwork.sendMessage({ type: 'REQUEST_PEERS', private: true })
   },
   /** Share our peer list with other peers who asked for it */
   PEER_LIST: (ws: WebSocket, addresses: string[]) => {
@@ -102,6 +108,7 @@ export const messageList = {
       data: {
         peers: addresses,
       },
+      private: true,
     })
   },
 
@@ -112,6 +119,7 @@ export const messageList = {
       data: {
         msgHash,
       },
+      private: true,
     })
   },
   /** Share signatures with one or more peers */
@@ -129,6 +137,7 @@ export const messageList = {
         operators: operators ? operators : wrap.operators,
         signatures: signatures ? signatures : wrap.signatures,
       },
+      private: ws ? true : false,
     }
     if (ws) {
       p2pNetwork.wsSend(ws, message)
@@ -140,6 +149,7 @@ export const messageList = {
     const message: GovernanceMessage = {
       type: 'GOVERNANCE',
       data: govInfo,
+      private: ws ? true : false,
     }
     if (ws) {
       p2pNetwork.wsSend(ws, message)
@@ -153,6 +163,7 @@ export const messageList = {
       data: {
         proposalKey,
       },
+      private: true,
     }
     p2pNetwork.sendMessage(message)
   },
