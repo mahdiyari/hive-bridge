@@ -5,6 +5,7 @@ import { sleep } from '@/utils/sleep'
 import { config } from '@/config'
 import { ChainName, ChainService } from './types/chain.types'
 import { messageList } from './network/messageList'
+import { logger } from './utils/logger'
 
 const USERNAME = config.hive.operator.username
 const ACTIVE_KEY = config.hive.operator.activeKey
@@ -82,39 +83,44 @@ class Wraps {
   private cutoff = 7 * 24 * 60 * 60 * 1000 // 7 days in ms
 
   constructor() {
-    setInterval(() => {
-      this.checkPendingWraps()
-    }, 15_000)
+    setTimeout(() => this.checkPendingWraps(), 30_000)
   }
 
   // Check and remove already minted pending wraps
   private async checkPendingWraps() {
-    for (const [key, value] of this.pendingWraps) {
-      const minted = await value.chainInstance.hasMinted(
-        value.data.trxId,
-        value.data.opInTrx
-      )
-      await sleep(10)
-      if (minted) {
-        this.removePendingWrap(key)
-      } else {
+    try {
+      for (const [msgHash, wrap] of this.pendingWraps) {
         // Need to remove old pending wraps to prevent excess RAM usage
         // Someone could spam small transfers and increase the size of pendingHiveWraps variable
         // We prevent < 1 HIVE/HBD wraps to mitigate this
         // 7 days should be safe enough
         const now = Date.now()
         if (
-          value.timestamp < now - this.cutoff &&
+          wrap.timestamp < now - this.cutoff &&
           this.pendingWraps.size > 1000
         ) {
-          this.removePendingWrap(key)
+          this.removePendingWrap(msgHash)
+          continue
         }
         // Ask for signatures of the pending wrap if not enough signatures present
-        if (value.signatures.length < value.chainInstance.multisigThreshold) {
-          messageList.REQUEST_WRAP_SIGNATURES(key)
+        if (wrap.signatures.length < wrap.chainInstance.multisigThreshold) {
+          messageList.REQUEST_WRAP_SIGNATURES(msgHash)
           await sleep(50)
+          continue
         }
+        const minted = await wrap.chainInstance.hasMinted(
+          wrap.data.trxId,
+          wrap.data.opInTrx
+        )
+        if (minted) {
+          this.removePendingWrap(msgHash)
+        }
+        await sleep(50)
       }
+    } catch (e) {
+      logger.debug(e)
+    } finally {
+      setTimeout(() => this.checkPendingWraps(), 20_000)
     }
   }
 
