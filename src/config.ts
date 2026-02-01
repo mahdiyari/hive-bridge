@@ -65,11 +65,11 @@ export const config = {
     p2p: {
       heartbeatInterval: 20_000, // 20 seconds
       maxPeers: 5,
-      messageRateLimit: 10, // per second
+      messageRateLimit: 50, // per second
       handshakeTimeout: 5_000, // 5 seconds
       peerCheckInterval: 60_000, // 1 minute
       peerDiscoverySleepMs: 500,
-      maxMessageSize: 1024 * 100, // 100 KB
+      maxMessageSize: 1024 * 10, // 10 KB
     },
     operators: {
       timeout: 30_000, // 30 seconds
