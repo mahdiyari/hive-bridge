@@ -5,15 +5,18 @@ export interface HelloMessage {
   type: 'HELLO'
   data: {
     peerId: string
-    address: string
+    port: number
   }
+  private: true
 }
 
 export interface HelloAckMessage {
   type: 'HELLO_ACK'
   data: {
     peerId: string
+    remoteId: string
   }
+  private: true
 }
 
 export interface SignaturesMessage {
@@ -24,6 +27,17 @@ export interface SignaturesMessage {
     operators: string[]
     signatures: string[]
   }
+  private: boolean
+}
+
+export interface HiveSignaturesMessage {
+  type: 'HIVE_SIGNATURES'
+  data: {
+    trxHash: string
+    operators: string[]
+    signatures: string[]
+  }
+  private: boolean
 }
 
 export interface HeartbeatMessage {
@@ -35,15 +49,7 @@ export interface HeartbeatMessage {
     timestamp: number
     signature: string
   }
-}
-
-export interface HiveSignaturesMessage {
-  type: 'HIVE_SIGNATURES'
-  data: {
-    trxHash: string
-    operators: string[]
-    signatures: string[]
-  }
+  private: false
 }
 
 export interface PeerListMessage {
@@ -51,10 +57,12 @@ export interface PeerListMessage {
   data: {
     peers: string[]
   }
+  private: true
 }
 
 export interface RequestPeersMessage {
   type: 'REQUEST_PEERS'
+  private: true
 }
 
 export interface RequestWrapSignatures {
@@ -62,6 +70,7 @@ export interface RequestWrapSignatures {
   data: {
     msgHash: string
   }
+  private: true
 }
 
 export interface RequestHiveSignatures {
@@ -69,6 +78,7 @@ export interface RequestHiveSignatures {
   data: {
     trxHash: string
   }
+  private: true
 }
 
 export interface GovernanceMessage {
@@ -78,6 +88,7 @@ export interface GovernanceMessage {
     operator: string
     signature: string
   }
+  private: boolean
 }
 
 export interface RequestGovernanceMessage {
@@ -85,6 +96,7 @@ export interface RequestGovernanceMessage {
   data: {
     proposalKey: ProposalKey
   }
+  private: true
 }
 
 export type Message =
