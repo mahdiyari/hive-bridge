@@ -42,7 +42,6 @@ class P2PNetwork {
   private myId: string
   private event = new EventTarget()
 
-  // TODO: zod or similar for message type/value verification
   constructor() {
     this.knownPeers = config.general.knownPeers?.split(/,\s?/) || []
     this.port = config.general.port
@@ -211,33 +210,23 @@ class P2PNetwork {
           if (message.type !== expectedType) {
             return ws.close()
           } else {
-            peerId = message.data?.peerId
-            if (
-              !peerId ||
-              typeof peerId !== 'string' ||
-              !uuidValidate(peerId) ||
-              peerId === this.myId
-            ) {
-              return ws.close()
-            }
+            // The message is already validated by Zod, so we can safely access the data
             if (message.type === 'HELLO') {
-              port = message.data?.port
-              if (
-                !port ||
-                typeof port !== 'number' ||
-                isNaN(port) ||
-                port < 1 ||
-                port > 65535
-              ) {
+              peerId = message.data.peerId
+              port = message.data.port
+              if (peerId === this.myId) {
                 return ws.close()
               }
               messageList.HELLO_ACK(ws, this.myId, peerId)
             } else {
-              const remoteId = message.data?.remoteId
-              if (!remoteId || remoteId !== this.myId) {
+              // HELLO_ACK case
+              const remoteId = message.data.remoteId
+              if (remoteId !== this.myId) {
                 return ws.close()
               }
+              peerId = message.data.peerId
             }
+
             if (this.isAlreadyConnected(ip, Number(port))) {
               return ws.close()
             }
@@ -248,7 +237,8 @@ class P2PNetwork {
         } else {
           this.handleRegularMessage(message, peerId, ws)
         }
-      } catch {
+      } catch (e) {
+        logger.debug(e)
         ws.close()
       }
     })
@@ -367,8 +357,9 @@ class P2PNetwork {
       const msg = detail.data
       const sender = detail.sender
       if (msg.type === 'PEER_LIST') {
-        const receivedPeers = msg.data?.peers
-        if (!receivedPeers || receivedPeers.length > this.cfg.maxPeers * 2) {
+        // Zod validation ensures msg.data.peers exists and is properly formatted
+        const receivedPeers = msg.data.peers
+        if (receivedPeers.length > this.cfg.maxPeers * 2) {
           return
         }
         for (const address of receivedPeers) {
