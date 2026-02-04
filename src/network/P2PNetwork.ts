@@ -32,6 +32,7 @@ class P2PNetwork {
     peerCheckInterval: config.network.p2p.peerCheckInterval,
     maxMessageSize: config.network.p2p.maxMessageSize,
     peerDiscoverySleepMs: config.network.p2p.peerDiscoverySleepMs,
+    minimumPublicPeers: 3,
   }
 
   private knownPeers: string[] = []
@@ -61,7 +62,6 @@ class P2PNetwork {
     }, 1_000)
 
     setInterval(() => {
-      this.connectToKnownPeers()
       this.checkPeers()
     }, this.cfg.peerCheckInterval)
   }
@@ -114,7 +114,17 @@ class P2PNetwork {
     // Start API
     API(app)
     const { cert, key } = await generateSelfSignedCert()
-    const server = createSecureServer({ cert, key }, app)
+    const server = createSecureServer(
+      {
+        cert,
+        key,
+        handshakeTimeout: 10_000,
+        headersTimeout: 5_000,
+        requestTimeout: 10_000,
+        maxHeaderSize: 4096,
+      },
+      app
+    )
     const wss = new WebSocketServer({
       server,
       path: '/',
@@ -134,10 +144,6 @@ class P2PNetwork {
 
   /** Handles the incoming connection and handshake from peers */
   private handleIncomingConnection(ws: WebSocket, request: IncomingMessage) {
-    if (peers.getAllPeers().length >= this.cfg.maxPeers * 2) {
-      logger.debug('Max peers reached, rejecting connection')
-      return ws.close()
-    }
     const ip = request.socket.remoteAddress
     if (!ip) {
       return ws.close()
@@ -147,7 +153,7 @@ class P2PNetwork {
 
   /**
    * Handles the outgoing connections
-   * peerAddress without ws:// or wss:// e.g. 1.1.1.1:3018
+   * peerAddress without wss:// e.g. 1.1.1.1:3018
    */
   private connectToPeer(peerAddress: string) {
     if (peers.getAllPeers().length >= this.cfg.maxPeers * 2) {
@@ -292,15 +298,21 @@ class P2PNetwork {
     }
   }
 
-  // TODO: make it possible to have to concurrent connections
   /** Check if already connected to a peer address */
   private isAlreadyConnected(ip: string, port: number): boolean {
-    return peers
+    // True if the same ip:port is already connected
+    const isConnectedToSameIpPort = peers
       .getAllPeers()
       .some((peer) => peer.ip === ip && peer.port === port)
+    // Number of connections from the same IP
+    const sameIpConnections = peers
+      .getAllPeers()
+      .filter((peer) => peer.ip === ip).length
+    // Prevent more than 3 connections from the same IP
+    return sameIpConnections >= 3 || isConnectedToSameIpPort
   }
 
-  // Operators send a heartbeat message every 90s
+  // Operators send a heartbeat message every heartbeatInterval
   private initiateHeartbeat() {
     const USERNAME = config.hive.operator.username
     const ACTIVE_KEY = config.hive.operator.activeKey
@@ -319,7 +331,11 @@ class P2PNetwork {
     const privatePeers = peers.getPrivatePeers()
     this.pruneExcessPeers(privatePeers)
     this.pruneExcessPeers(publicPeers)
-    if (publicPeers.length < this.cfg.maxPeers) {
+    if (publicPeers.length > this.cfg.minimumPublicPeers) {
+      return
+    }
+    if (publicPeers.length <= this.cfg.minimumPublicPeers) {
+      this.connectToKnownPeers()
       messageList.REQUEST_PEERS()
     }
   }
@@ -335,9 +351,14 @@ class P2PNetwork {
       peerList.length - 1,
       peersToRemove
     )
-    indices.forEach((index) => {
-      logger.debug('Pruning excess peer:', peerList[index].id)
-      peers.removePeer(peerList[index].id)
+    // Send our peer list to the target peer before disconnecting them
+    // So they can connect to other peers
+    indices.forEach(async (index) => {
+      const peerId = peerList[index].id
+      this.sendPeerListTo(peerId)
+      await sleep(2000)
+      logger.debug('Pruning excess peer:', peerId)
+      peers.removePeer(peerId)
     })
   }
 
@@ -346,7 +367,11 @@ class P2PNetwork {
       const msg = detail.data
       const sender = detail.sender
       if (msg.type === 'PEER_LIST') {
-        for (const address of msg.data.peers) {
+        const receivedPeers = msg.data?.peers
+        if (!receivedPeers || receivedPeers.length > this.cfg.maxPeers * 2) {
+          return
+        }
+        for (const address of receivedPeers) {
           if (peers.getPublicPeers().length >= this.cfg.maxPeers) {
             return
           }
@@ -355,26 +380,30 @@ class P2PNetwork {
           await sleep(this.cfg.peerDiscoverySleepMs)
         }
       } else if (msg.type === 'REQUEST_PEERS') {
-        const pubPeers = peers.getPublicPeers()
-        if (pubPeers.length === 0) {
-          return
-        }
-        const addresses: string[] = []
-        pubPeers.forEach((peer) => {
-          // Filter out the senders address
-          if (peer.id !== sender) {
-            addresses.push(`${peer.ip}:${peer.port}`)
-          }
-        })
-        if (addresses.length === 0) {
-          return
-        }
-        const ws = peers.getWS(sender)
-        if (ws) {
-          messageList.PEER_LIST(ws, addresses)
-        }
+        this.sendPeerListTo(sender)
       }
     })
+  }
+
+  private sendPeerListTo(peerId: string) {
+    const pubPeers = peers.getPublicPeers()
+    if (pubPeers.length === 0) {
+      return
+    }
+    const addresses: string[] = []
+    pubPeers.forEach((peer) => {
+      // Filter out the senders address
+      if (peer.id !== peerId) {
+        addresses.push(`${peer.ip}:${peer.port}`)
+      }
+    })
+    if (addresses.length === 0) {
+      return
+    }
+    const ws = peers.getWS(peerId)
+    if (ws) {
+      messageList.PEER_LIST(ws, addresses)
+    }
   }
 }
 
