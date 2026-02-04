@@ -1,6 +1,6 @@
 import { config } from '@/config'
 import { EthereumService } from './ethereum/EthereumService'
-import { ChainService } from '@/types/chain.types'
+import { ChainName } from '@/types/chain.types'
 
 const HIVE_ETH_CONTRACT = config.eth.contract.hive
 const HBD_ETH_CONTRACT = config.eth.contract.hbd
@@ -20,3 +20,5 @@ export const addedChainServices = {
   ETHHIVE: erc20HIVE,
   ETHHBD: erc20HBD,
 }
+
+export const chainNames: ChainName[] = ['ETH']
