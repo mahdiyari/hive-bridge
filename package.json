@@ -17,7 +17,8 @@
     "express": "5.1.0",
     "hive-tx": "^7.0.1",
     "tsx": "^4.21.0",
-    "ws": "8.18.3"
+    "ws": "8.18.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/dotenv": "^6.1.1",
@@ -30,6 +31,6 @@
   "author": "",
   "license": "",
   "optionalDependencies": {
-    "bufferutil": "*"
+    "bufferutil": "^4.1.0"
   }
 }
