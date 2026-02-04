@@ -26,15 +26,16 @@ const chains: ChainSymbolKey[] = ['ETHHIVE', 'ETHHBD', 'HIVE']
 
 export const proposals: Map<ProposalKey, Proposal> = new Map()
 
+const USERNAME = config.hive.operator.username
+const ACTIVE_KEY = config.hive.operator.activeKey
+
 export class Governance {
   private readonly CLEANUP_INTERVAL_MINUTES = 10
   private readonly STALE_ACTION_DAYS = 1
 
   private hive: HiveService
   private paused: boolean = false
-  private username = config.hive.operator.username
-  private activeKey = config.hive.operator.activeKey
-  private isOperator = this.username && this.activeKey ? true : false
+  private isOperator = USERNAME && ACTIVE_KEY ? true : false
 
   constructor(hive: HiveService) {
     this.hive = hive
@@ -146,7 +147,7 @@ export class Governance {
         }
         proposals.set(proposalKey, proposal)
         logger.info(`Started proposal: ${proposalKey} by ${transfer.from}`)
-        if (this.isOperator && this.username === transfer.from) {
+        if (this.isOperator && USERNAME === transfer.from) {
           this.signProposal(proposal)
         }
         if (Date.now() - transfer.timestamp > 10_000) {
@@ -159,7 +160,7 @@ export class Governance {
         // Proposal creation can take some time, so wait here a bit
         await sleep(15_000)
         // Sign if this is from our operator
-        if (!this.isOperator || this.username !== transfer.from) {
+        if (!this.isOperator || USERNAME !== transfer.from) {
           return
         }
         const proposal = proposals.get(proposalKey)
@@ -185,7 +186,7 @@ export class Governance {
   ): Promise<string | null> {
     if (proposal.created) {
       if (proposal.trx) {
-        return PrivateKey.from(this.activeKey!)
+        return PrivateKey.from(ACTIVE_KEY!)
           .sign(proposal.trx.digest().digest)
           .customToString()
       } else {
@@ -201,10 +202,10 @@ export class Governance {
   }
 
   private submitVote(proposal: Proposal, signature: string) {
-    proposal.vote(this.username!, signature)
+    proposal.vote(USERNAME!, signature)
     const proposalKey: ProposalKey = proposal.proposalKey
     messageList.GOVERNANCE({
-      operator: this.username!,
+      operator: USERNAME!,
       proposalKey,
       signature,
     })
@@ -212,7 +213,7 @@ export class Governance {
   }
 
   private async signProposal(proposal: Proposal) {
-    if (!this.username || !this.activeKey) {
+    if (!USERNAME || !ACTIVE_KEY) {
       return
     }
     try {
