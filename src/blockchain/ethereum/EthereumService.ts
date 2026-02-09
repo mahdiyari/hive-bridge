@@ -17,24 +17,23 @@ const BadMethod = (method: string) =>
   new Error(`Got a bad proposal method: ${method}`)
 
 export class EthereumService implements ChainService {
-  private CONFIRMATIONS = config.eth.service.confirmations
-  private POLLING_INTERVAL = config.eth.service.pollingInterval
-  private historyDepth = config.eth.service.historyDepth
-  private nodes: string[]
-  private provider: ethers.FallbackProvider
-  private contract: ethers.Contract
-  private event = new EventTarget()
+  private readonly CONFIRMATIONS = 12
+  private readonly POLLING_INTERVAL = 20_000 // 20s
+  private readonly historyDepth = 500 // Each block ~12s - 500 = 100 minutes
+  private readonly nodes = config.eth.nodes
+  private readonly provider: ethers.FallbackProvider
+  private readonly contract: ethers.Contract
+  private readonly event = new EventTarget()
   lastPolledBlock = 0
-  contractAddress: string
+  readonly contractAddress: string
   multisigThreshold = 1 // updates regularly
-  symbol: 'HIVE' | 'HBD'
-  name: ChainName = 'ETH'
+  readonly symbol: 'HIVE' | 'HBD'
+  readonly name: ChainName = 'ETH'
 
   /** Takes either wHIVE or wHBD contract address - Both contracts should be identical */
   constructor(contractAddress: string, symbol: 'HIVE' | 'HBD') {
     this.symbol = symbol
     this.contractAddress = contractAddress
-    this.nodes = config.eth.nodes
     if (this.nodes.length === 0) {
       throw new Error('Missing Ethereum nodes from config file')
     }
