@@ -48,12 +48,6 @@ export const config = {
       'https://ethereum-sepolia-public.nodies.app',
       'https://eth-sepolia.api.onfinality.io/public',
     ],
-    service: {
-      confirmations: 12,
-      pollingInterval: 20_000, // 20 seconds
-      // Each block ~12s - 500 = 100 minutes
-      historyDepth: 500,
-    },
   },
   network: {
     p2p: {
