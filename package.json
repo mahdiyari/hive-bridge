@@ -4,8 +4,8 @@
   "description": "hive-bridge",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts"
+    "dev": "tsx watch src/core/index.ts",
+    "start": "tsx src/core/index.ts"
   },
   "dependencies": {
     "@noble/ciphers": "^2.1.1",
