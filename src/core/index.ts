@@ -11,10 +11,6 @@ import { HiveService } from '../blockchain/hive/HiveService'
 import { operators } from '../network/Operators'
 import { Governance } from '../governance/Governance'
 
-// TODO:
-// P2P limit etc might need tuning
-// Proxy ETH contract?
-
 const TREASURY = config.hive.treasury
 
 if (config.hive.operator.username && config.hive.operator.activeKey) {
