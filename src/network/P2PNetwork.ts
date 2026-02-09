@@ -321,10 +321,10 @@ class P2PNetwork {
     const privatePeers = peers.getPrivatePeers()
     this.pruneExcessPeers(privatePeers)
     this.pruneExcessPeers(publicPeers)
-    if (publicPeers.length > this.cfg.minimumPublicPeers) {
+    if (publicPeers.length >= this.cfg.minimumPublicPeers) {
       return
     }
-    if (publicPeers.length <= this.cfg.minimumPublicPeers) {
+    if (publicPeers.length < this.cfg.minimumPublicPeers) {
       this.connectToKnownPeers()
       messageList.REQUEST_PEERS()
     }
