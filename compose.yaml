@@ -12,3 +12,8 @@ services:
       - .env
     environment:
       - ENV_VAR=production
+    networks:
+      - hive-bridge
+networks:
+  hive-bridge:
+    enable_ipv6: true
