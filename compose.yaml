@@ -3,6 +3,8 @@ services:
     container_name: hive-bridge
     build:
       context: .
+      args:
+        FORCE_IPV6: ${FORCE_IPV6:-false}
     restart: unless-stopped
     init: true
     tty: true
