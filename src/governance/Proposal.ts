@@ -150,9 +150,6 @@ export class Proposal {
     )
   }
 
-  // TODO: Check operator keys/address on chain and on contracts
-  // periodically and produce warnings if they don't match
-
   async vote(operator: string, signature: string): Promise<void> {
     if (!this.created) {
       await sleep(200)
