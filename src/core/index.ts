@@ -1,15 +1,15 @@
-import { pendingWraps } from '@/Wraps'
+import { pendingWraps } from '@/core/Wraps'
 import { buildHiveTransfer } from '@/utils/hive.utils'
-import { pendingUnwraps } from '@/Unwraps'
-import { sleep } from '@/utils/sleep'
+import { pendingUnwraps } from '@/core/Unwraps'
+import { sleep } from '@/utils/time.utils'
 import { p2pNetwork } from '@/network/P2PNetwork'
 import { ChainService } from '@/types/chain.types'
 import { logger } from '@/utils/logger'
-import { config } from '@/config'
-import { addedChainServices } from './blockchain'
-import { HiveService } from './blockchain/hive/HiveService'
-import { operators } from './network/Operators'
-import { Governance } from './governance/Governance'
+import { config } from '@/core/config'
+import { addedChainServices } from '../blockchain'
+import { HiveService } from '../blockchain/hive/HiveService'
+import { operators } from '../network/Operators'
+import { Governance } from '../governance/Governance'
 
 // TODO:
 // P2P limit etc might need tuning
@@ -33,16 +33,14 @@ await sleep(5000)
 while (operators.size === 0) {
   await sleep(100)
 }
-// Ignore the blocks before genesis
-const HIVE_GENESIS = config.hive.genesis
-const hiveService = new HiveService(HIVE_GENESIS)
+
+const hiveService = new HiveService()
 
 // Initialize governance system
 new Governance(hiveService)
 
 const addChainService = (chainService: ChainService) => {
   const contractSymbol = chainService.symbol
-
   hiveService.onTransfer(async (detail) => {
     const symbol = detail.amount.split(' ')[1]
     if (symbol !== contractSymbol) {

@@ -4,9 +4,9 @@ import { ChainService, UnwrapEvent } from '@/types/chain.types'
 import { PrivateKey, PublicKey } from 'hive-tx'
 import { logger } from '@/utils/logger'
 import { ChainName } from '@/types/chain.types'
-import { config } from '@/config'
+import { config } from '@/core/config'
 import { bytesToHex } from '@noble/hashes/utils.js'
-import { sleep } from '@/utils/sleep'
+import { sleep } from '@/utils/time.utils'
 import { Method } from '@/types/governance.types'
 
 const BadData = () => new Error('Bad data received from contract.')

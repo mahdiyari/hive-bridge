@@ -1,4 +1,4 @@
-import { config } from '@/config'
+import { config } from '@/core/config'
 import { FullMessage } from '@/types/network.types'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex } from '@noble/hashes/utils.js'
@@ -22,7 +22,6 @@ export const checkPeerStatus = (
         httpsAgent: new Agent({ rejectUnauthorized: false }),
       })
       .then((res) => {
-        // TODO: not tested yet
         if (res.data.status === 'OK') {
           resolve(true)
           return

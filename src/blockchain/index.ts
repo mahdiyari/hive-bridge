@@ -1,4 +1,4 @@
-import { config } from '@/config'
+import { config } from '@/core/config'
 import { EthereumService } from './ethereum/EthereumService'
 import { ChainName } from '@/types/chain.types'
 

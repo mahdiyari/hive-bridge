@@ -1,86 +1,27 @@
 import { ethers } from 'ethers'
 import { operators } from '@/network/Operators'
-import { sleep } from '@/utils/sleep'
-
-import { config } from '@/config'
-import { ChainName, ChainService } from './types/chain.types'
-import { messageList } from './network/messageList'
-import { logger } from './utils/logger'
+import { sleep, timeUntil } from '@/utils/time.utils'
+import { config } from '@/core/config'
+import { ChainName, ChainService } from '../types/chain.types'
+import { messageList } from '../network/messageList'
+import { logger } from '../utils/logger'
+import { Wrap } from './Wrap'
 
 const USERNAME = config.hive.operator.username
 const ACTIVE_KEY = config.hive.operator.activeKey
 
-class Wrap {
-  public data: {
-    chainName: ChainName
-    symbol: 'HIVE' | 'HBD'
-    address: string
-    amount: number
-    trxId: string
-    opInTrx: number
-    contract: string
-    username: string
-  }
-  public chainInstance: ChainService
-  public signatures: string[]
-  public operators: string[]
-  public timestamp: number
-  public msgHash: string
-
-  constructor(
-    chainName: ChainName,
-    symbol: 'HIVE' | 'HBD',
-    chainInstance: ChainService,
-    address: string,
-    amount: number,
-    trxId: string,
-    opInTrx: number,
-    username: string,
-    msgHash: string,
-    timestamp: number
-  ) {
-    this.data = {
-      chainName,
-      symbol,
-      address,
-      amount,
-      trxId,
-      opInTrx,
-      contract: chainInstance.contractAddress,
-      username,
-    }
-    this.chainInstance = chainInstance
-    this.msgHash = msgHash
-    this.timestamp = timestamp
-    this.signatures = []
-    this.operators = []
-  }
-
-  public addSignature(signature: string) {
-    if (!this.signatures.includes(signature)) {
-      this.signatures.push(signature)
-    }
-  }
-
-  public addOperator(operator: string) {
-    if (!this.hasOperator(operator)) {
-      this.operators.push(operator)
-    }
-  }
-
-  public hasOperator(operator: string): boolean {
-    return this.operators.includes(operator)
-  }
-}
-
 class Wraps {
-  private pendingWraps: Map<string, Wrap> = new Map()
+  private readonly pendingWraps: Map<string, Wrap> = new Map()
 
   // Keep msgHash for usernames and addresses for retrieving their pending wraps
-  private pendingWrapsByAddress: Map<string, string[]> = new Map()
-  private pendingWrapsByUsername: Map<string, string[]> = new Map()
+  private readonly pendingWrapsByAddress: Map<string, string[]> = new Map()
+  private readonly pendingWrapsByUsername: Map<string, string[]> = new Map()
 
-  private cutoff = 7 * 24 * 60 * 60 * 1000 // 7 days in ms
+  // Need to remove old pending wraps to prevent excess RAM usage
+  // Someone could spam small transfers and increase the size of pendingHiveWraps variable
+  // We prevent < 1 HIVE/HBD wraps to mitigate this - maybe should be 10 HIVE/HBD?
+  // 7 days should be safe enough
+  private readonly cutoff = 7 * 24 * 60 * 60 * 1000 // 7 days in ms
 
   constructor() {
     setTimeout(() => this.checkPendingWraps(), 30_000)
@@ -90,15 +31,8 @@ class Wraps {
   private async checkPendingWraps() {
     try {
       for (const [msgHash, wrap] of this.pendingWraps) {
-        // Need to remove old pending wraps to prevent excess RAM usage
-        // Someone could spam small transfers and increase the size of pendingHiveWraps variable
-        // We prevent < 1 HIVE/HBD wraps to mitigate this
-        // 7 days should be safe enough
         const now = Date.now()
-        if (
-          wrap.timestamp < now - this.cutoff &&
-          this.pendingWraps.size > 100
-        ) {
+        if (wrap.timestamp < now - this.cutoff) {
           this.removePendingWrap(msgHash)
           continue
         }
@@ -150,6 +84,9 @@ class Wraps {
       msgHash,
       timestamp
     )
+    if (Date.now() - timestamp > this.cutoff) {
+      return
+    }
     this.pendingWraps.set(msgHash, wrap)
     if (this.pendingWrapsByAddress.has(address)) {
       this.pendingWrapsByAddress.get(address)?.push(msgHash)
@@ -246,6 +183,7 @@ class Wraps {
       operators: Wrap['operators']
       signatures: Wrap['signatures']
       timestamp: Wrap['timestamp']
+      expiration: string
     }[] = []
     msgHashes?.forEach((hash) => {
       const wrap = this.pendingWraps.get(hash)
@@ -258,6 +196,7 @@ class Wraps {
         operators: wrap.operators,
         signatures: wrap.signatures,
         timestamp: wrap.timestamp,
+        expiration: timeUntil(wrap.timestamp + this.cutoff),
       })
     })
     return wraps

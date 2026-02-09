@@ -29,28 +29,3 @@ export interface TransferBody {
   trxId: string
   opInTrx: number
 }
-
-// interface Block {
-//   block_id: string
-//   extensions: []
-//   previous: string
-//   signing_key: string
-//   timestamp: string
-//   transaction_ids: string[]
-//   transaction_merkle_root: string
-//   transactions: [
-//     {
-//       block_num: number
-//       expiration: string
-//       extensions: []
-//       operations: [string, any][]
-//       ref_block_num: number
-//       ref_block_prefix: number
-//       signatures: string[]
-//       transaction_id: string
-//       transaction_num: number
-//     },
-//   ]
-//   witness: string
-//   witness_signature: string
-// }

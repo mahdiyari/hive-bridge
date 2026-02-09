@@ -1,6 +1,6 @@
 import { callRPC, Transaction } from 'hive-tx'
 import { hexToBytes } from '@noble/hashes/utils.js'
-import { config } from '@/config'
+import { config } from '@/core/config'
 
 /**
  * Build a deterministic Hive transaction based on timestamp

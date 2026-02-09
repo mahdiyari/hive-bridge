@@ -1,5 +1,5 @@
-import { pendingUnwraps } from '@/Unwraps'
-import { pendingWraps } from '@/Wraps'
+import { pendingUnwraps } from '@/core/Unwraps'
+import { pendingWraps } from '@/core/Wraps'
 import { ethers } from 'ethers'
 import { Express, json, Request, Response } from 'express'
 import { peers } from './Peers'
@@ -80,16 +80,7 @@ export const API = (app: Express) => {
 
   app.get('/pending-hive-wraps', (_req, res) => {
     const allWraps = pendingWraps.getAllPendingWraps()
-    const wraps: WrapResponse[] = []
-    allWraps.forEach((wrap) => {
-      wraps.push({
-        msgHash: wrap.msgHash,
-        data: wrap.data,
-        operators: wrap.operators,
-        signatures: wrap.signatures,
-        timestamp: wrap.timestamp,
-      })
-    })
+    const wraps = pendingWraps.getWrapsByHashes(allWraps.keys().toArray())
     res.json(wraps)
   })
 

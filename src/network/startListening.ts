@@ -1,15 +1,15 @@
 import { bytesToHex } from '@noble/hashes/utils.js'
-import { pendingUnwraps } from '../Unwraps'
+import { pendingUnwraps } from '../core/Unwraps'
 import { p2pNetwork } from './P2PNetwork'
-import { pendingWraps } from '../Wraps'
+import { pendingWraps } from '../core/Wraps'
 import { peers } from './Peers'
 import { operators } from './Operators'
 import { messageList } from './messageList'
 import { sha256String } from '@/utils/p2p.utils'
 import { Signature } from 'hive-tx'
-import { config } from '@/config'
+import { config } from '@/core/config'
 import { proposals } from '@/governance/Governance'
-import { sleep } from '@/utils/sleep'
+import { sleep } from '@/utils/time.utils'
 
 export const startListening = () => {
   p2pNetwork.onMessage(async (msg) => {

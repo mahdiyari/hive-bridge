@@ -1,4 +1,4 @@
-import { config } from '@/config'
+import { config } from '@/core/config'
 import { sha256String } from '@/utils/p2p.utils'
 import { PrivateKey } from 'hive-tx'
 import { p2pNetwork } from './P2PNetwork'
@@ -11,9 +11,9 @@ import {
   SignaturesMessage,
 } from '@/types/network.types'
 import { WebSocket } from 'ws'
-import { pendingUnwraps } from '@/Unwraps'
+import { pendingUnwraps } from '@/core/Unwraps'
 import { ChainName } from '@/types/chain.types'
-import { pendingWraps } from '@/Wraps'
+import { pendingWraps } from '@/core/Wraps'
 import { ProposalKey } from '@/types/governance.types'
 
 export const messageList = {

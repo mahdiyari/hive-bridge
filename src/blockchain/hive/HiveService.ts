@@ -1,26 +1,27 @@
 import { callWithQuorum, config as configHiveTx } from 'hive-tx'
 import { TransferBody, TransferHistory } from '@/types/hive.types'
-import { config } from '@/config'
+import { config } from '@/core/config'
 import { logger } from '@/utils/logger'
 
 export class HiveService {
-  private POLLING_INTERVAL = config.hive.service.pollingInterval
-  private TREASURY = config.hive.treasury
-  private HISTORY_BATCH_SIZE = config.hive.service.historyBatchSize
-  private HISTORY_POLLING_SIZE = config.hive.service.historyPollingSize
-  private event = new EventTarget()
-  private nodes = config.hive.nodes
+  private readonly POLLING_INTERVAL = 5_000
+  private readonly TREASURY = config.hive.treasury
+  private readonly HISTORY_BATCH_SIZE = 1000
+  private readonly HISTORY_POLLING_SIZE = 10
+  private readonly event = new EventTarget()
+  private readonly nodes = config.hive.nodes
+  private readonly genesisBlock = config.hive.genesis
   private lastHistoryId = 0
-  private genesisBlock
 
-  constructor(genesis: number) {
-    this.genesisBlock = genesis
+  constructor() {
     configHiveTx.nodes = this.nodes
   }
 
   /** Start HiveService and begin polling for transfer history */
   public start() {
-    this.processHistory()
+    setInterval(() => {
+      this.processHistory(this.HISTORY_POLLING_SIZE)
+    }, this.POLLING_INTERVAL)
   }
 
   /** Triggers on transfers to the bridge account with valid memo */
@@ -95,13 +96,6 @@ export class HiveService {
       this.lastHistoryId = transfers[transfers.length - 1][0]
     } catch (e) {
       logger.debug('Possibly a network error when fetching Hive history:', e)
-    } finally {
-      // Run only once - set up polling for new transfers
-      if (!count) {
-        setInterval(() => {
-          this.processHistory(this.HISTORY_POLLING_SIZE)
-        }, this.POLLING_INTERVAL)
-      }
     }
   }
 

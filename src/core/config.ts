@@ -30,12 +30,6 @@ export const config = {
       username: getEnv('USERNAME'),
       activeKey: getEnv('ACTIVE_KEY'),
     },
-    service: {
-      minAmount: 1,
-      pollingInterval: 5_000, // 5 seconds
-      historyBatchSize: 1000,
-      historyPollingSize: 10,
-    },
     transaction: {
       // Transaction expiration for unwraps (max currently 24 hours)
       expirationMs: 86_300_000,

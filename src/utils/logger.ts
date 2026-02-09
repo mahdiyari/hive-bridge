@@ -1,4 +1,4 @@
-import { config } from '../config'
+import { config } from '../core/config'
 
 // Function by me but colors by AI ;P
 export const logger = {

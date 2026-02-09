@@ -1,6 +1,6 @@
 import { addedChainServices } from '@/blockchain'
 import { HiveService } from '@/blockchain/hive/HiveService'
-import { config } from '@/config'
+import { config } from '@/core/config'
 import { operators } from '@/network/Operators'
 import { TransferBody } from '@/types/hive.types'
 import { logger } from '@/utils/logger'
@@ -8,7 +8,7 @@ import { PrivateKey } from 'hive-tx'
 import { Proposal } from './Proposal'
 import { ChainSymbolKey, Method, ProposalKey } from '@/types/governance.types'
 import { getChainMessageHash } from './msgHash'
-import { sleep } from '@/utils/sleep'
+import { sleep } from '@/utils/time.utils'
 import { messageList } from '@/network/messageList'
 
 const methods: Method[] = [

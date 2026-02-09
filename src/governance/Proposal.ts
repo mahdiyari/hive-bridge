@@ -1,5 +1,5 @@
 import { addedChainServices } from '@/blockchain'
-import { config } from '@/config'
+import { config } from '@/core/config'
 import { ChainSymbolKey, Method, ProposalKey } from '@/types/governance.types'
 import {
   buildAccountUpdate,
@@ -10,7 +10,7 @@ import { logger } from '@/utils/logger'
 import { callRPC, Signature, Transaction } from 'hive-tx'
 import { getChainMessageHash } from './msgHash'
 import { hiveMultisigThreshold, operators } from '@/network/Operators'
-import { sleep } from '@/utils/sleep'
+import { sleep } from '@/utils/time.utils'
 import { messageList } from '@/network/messageList'
 
 const treasury = config.hive.treasury

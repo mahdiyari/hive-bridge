@@ -1,40 +1,15 @@
 import { callRPC, PrivateKey, Signature, Transaction } from 'hive-tx'
 import { hiveMultisigThreshold, operators } from '@/network/Operators'
 import { logger } from '@/utils/logger'
-import { config } from '@/config'
+import { config } from '@/core/config'
 import { messageList } from '@/network/messageList'
+import { Unwrap } from './Unwrap'
 
 const USERNAME = config.hive.operator.username
 const ACTIVE_KEY = config.hive.operator.activeKey
 
-class Unwrap {
-  public trx: Transaction
-  public operators: string[]
-  public timestamp: number
-
-  constructor(trx: Transaction) {
-    this.trx = trx
-    this.operators = []
-    this.timestamp = Date.now()
-  }
-
-  public addOperator(operator: string) {
-    if (!this.hasOperator(operator)) {
-      this.operators.push(operator)
-    }
-  }
-
-  public hasOperator(operator: string): boolean {
-    return this.operators.includes(operator)
-  }
-
-  public hasEnoughSignatures(threshold: number): boolean {
-    return this.operators.length >= threshold
-  }
-}
-
 class Unwraps {
-  private unwraps: Map<string, Unwrap> = new Map()
+  private readonly unwraps: Map<string, Unwrap> = new Map()
 
   constructor() {
     setInterval(() => {
