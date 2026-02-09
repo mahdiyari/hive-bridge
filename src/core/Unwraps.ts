@@ -25,7 +25,7 @@ class Unwraps {
           } catch (e) {
             // hive-tx will catch and ignore the duplicate transaction error
             // we might enconter other errors here so log them for now
-            logger.warning('Not a big deal I guess:', e)
+            logger.debug('Not a big deal I guess:', e)
           }
         } else {
           // Not enough signatures so request more
