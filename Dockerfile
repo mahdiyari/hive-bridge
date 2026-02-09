@@ -5,7 +5,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y openssl && apt-ge
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --production
+RUN npm install --omit=dev
 
 COPY . .
 
