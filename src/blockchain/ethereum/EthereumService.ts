@@ -20,12 +20,15 @@ export class EthereumService implements ChainService {
   private readonly CONFIRMATIONS = 12
   private readonly POLLING_INTERVAL = 20_000 // 20s
   private readonly historyDepth = 500 // Each block ~12s - 500 = 100 minutes
-  private readonly nodes = config.eth.nodes
+  private readonly nodes = config.eth.testing
+    ? config.eth.sepolia.nodes
+    : config.eth.mainnet.nodes
   private readonly provider: ethers.FallbackProvider
   private readonly contract: ethers.Contract
   private readonly event = new EventTarget()
   lastPolledBlock = 0
   readonly contractAddress: string
+  readonly chainId = config.eth.testing ? 0xaa36a7 : 0x1
   multisigThreshold = 1 // updates regularly
   readonly symbol: 'HIVE' | 'HBD'
   readonly name: ChainName = 'ETH'
@@ -101,13 +104,12 @@ export class EthereumService implements ChainService {
   /** Hash wrap;address;amount;trx_id;op_in_trx;contract */
   hashWrapMsg(address: string, amount: number, trxId: string, opInTrx: number) {
     // https://github.com/mahdiyari/hive-bridge-eth/blob/0294e02ef8f621ab48e8d7ecf7ac3d88254dd5ed/contracts/WrappedHive.sol#L283
-    return hasher(
+    return this.hasher(
       ['string', 'wrap'],
       ['address', address],
       ['uint256', amount],
       ['string', trxId],
-      ['uint32', opInTrx],
-      ['address', this.contractAddress]
+      ['uint32', opInTrx]
     )
   }
 
@@ -135,21 +137,19 @@ export class EthereumService implements ChainService {
 
   async hashUpdateMultisigThresholdMsg(newThreshold: number, nonce: number) {
     // updateMultisigThreshold;{newThreshold};{nonceUpdateThreshold};{contract}
-    return hasher(
+    return this.hasher(
       ['string', 'updateMultisigThreshold'],
       ['uint8', newThreshold],
-      ['uint256', nonce],
-      ['address', this.contractAddress]
+      ['uint256', nonce]
     )
   }
   async hashAddSignerMsg(username: string, address: string, nonce: number) {
     // addSigner;{addr};{username};{nonceAddSigner};{contract}
-    return hasher(
+    return this.hasher(
       ['string', 'addSigner'],
       ['address', address],
       ['string', username],
-      ['uint256', nonce],
-      ['address', this.contractAddress]
+      ['uint256', nonce]
     )
   }
   async hashRemoveSignerMsg(username: string, nonce: number) {
@@ -158,28 +158,19 @@ export class EthereumService implements ChainService {
     // change the key and then the saved address won't match the active key
     // so we get the saved address in order to remove that address
     const address = await this.getOperatorAddress(username)
-    return hasher(
+    return this.hasher(
       ['string', 'removeSigner'],
       ['address', address],
-      ['uint256', nonce],
-      ['address', this.contractAddress]
+      ['uint256', nonce]
     )
   }
   async hashPauseMsg(nonce: number) {
     // pause;{noncePause};{contract}
-    return hasher(
-      ['string', 'pause'],
-      ['uint256', nonce],
-      ['address', this.contractAddress]
-    )
+    return this.hasher(['string', 'pause'], ['uint256', nonce])
   }
   async hashUnPauseMsg(nonce: number) {
     // unpause;{nonceUnpause};{contract}
-    return hasher(
-      ['string', 'unpause'],
-      ['uint256', nonce],
-      ['address', this.contractAddress]
-    )
+    return this.hasher(['string', 'unpause'], ['uint256', nonce])
   }
 
   async getNonce(method: Method, retries = 0): Promise<number> {
@@ -204,7 +195,7 @@ export class EthereumService implements ChainService {
         throw BadData()
       }
       await sleep(100)
-      return this.getNonce(method, retries++)
+      return this.getNonce(method, ++retries)
     }
     throw BadMethod(method)
   }
@@ -254,7 +245,7 @@ export class EthereumService implements ChainService {
     if (!headBlock) {
       if (retries < 3) {
         await sleep(1000)
-        return this.getUnwrapEvents(retries++)
+        return this.getUnwrapEvents(++retries)
       } else {
         throw BadData()
       }
@@ -290,22 +281,27 @@ export class EthereumService implements ChainService {
       this.lastPolledBlock = safeBlock
     }
   }
-}
-
-/**
- * Keccak256 hash the inputs with added ; delimiter in between
- * - e.g. hasher(['address', '0x123'], ['uint256', 67])
- */
-const hasher = (...typeValuePairs: [string, string | number][]) => {
-  const types: string[] = []
-  const values: Array<string | number> = []
-  typeValuePairs.forEach(([type, value], index) => {
-    types.push(type)
-    values.push(value)
-    if (index < typeValuePairs.length - 1) {
+  /**
+   * Keccak256 hash the inputs with added ; delimiter in between
+   * - e.g. hasher(['address', '0x123'], ['uint256', 67])
+   * - Includes contract address and chain id
+   */
+  private hasher(...typeValuePairs: [string, string | number][]) {
+    const types: string[] = []
+    const values: Array<string | number> = []
+    typeValuePairs.forEach(([type, value], index) => {
+      types.push(type)
+      values.push(value)
       types.push('string')
       values.push(';')
-    }
-  })
-  return ethers.keccak256(ethers.solidityPacked(types, values))
+    })
+    // Contract address and chain id are common
+    types.push('address')
+    values.push(this.contractAddress)
+    types.push('string')
+    values.push(';')
+    types.push('uint256')
+    values.push(this.chainId)
+    return ethers.keccak256(ethers.solidityPacked(types, values))
+  }
 }
