@@ -68,6 +68,8 @@ class Wraps {
     msgHash: string,
     timestamp: number
   ) {
+    // Make sure the address is checksumed
+    address = ethers.getAddress(address)
     const wrap = new Wrap(
       chainName,
       symbol,
