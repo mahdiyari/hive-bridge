@@ -197,7 +197,7 @@ export class Governance {
         throw new Error('Failed to create a proposal in 60 tries')
       }
       await sleep(1000)
-      return this.getHiveSignature(proposal, retries++)
+      return this.getHiveSignature(proposal, ++retries)
     }
   }
 
