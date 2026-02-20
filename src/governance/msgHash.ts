@@ -6,11 +6,14 @@ export const getChainMessageHash = async (
   chain: ChainService,
   proposal: Proposal,
   sign = false
-): Promise<string> => {
+): Promise<string | undefined> => {
   let hash = ''
   switch (proposal.method) {
     case 'add-signer':
       const pubKeys = await getPublicActiveKeys(proposal.target)
+      if (!pubKeys) {
+        return
+      }
       const address = chain.toAddress(pubKeys[0])
       hash = await chain.hashAddSignerMsg(
         proposal.target,

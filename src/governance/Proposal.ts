@@ -82,6 +82,9 @@ export class Proposal {
 
   private async buildAddSigner(username: string, blockNum: number) {
     const account = await getAccount(treasury)
+    if (!account) {
+      return
+    }
     const activeAuths = account.active
     let alreadyAdded = false
     for (const [user] of activeAuths.account_auths) {
@@ -103,6 +106,9 @@ export class Proposal {
 
   private async buildRemoveSigner(username: string, blockNum: number) {
     const account = await getAccount(treasury)
+    if (!account) {
+      return
+    }
     const activeAuths = account.active
     let sumWeights = 0
     let tempSigners: [string, number][] = []
@@ -130,6 +136,9 @@ export class Proposal {
 
   private async buildUpdateThreshold(newThreshold: number, blockNum: number) {
     const account = await getAccount(treasury)
+    if (!account) {
+      return
+    }
     const activeAuths = account.active
     let sumWeights = 0
     for (const value of activeAuths.account_auths) {
@@ -185,6 +194,9 @@ export class Proposal {
     } else {
       const chain = addedChainServices[this.chain]
       const msgHash = await getChainMessageHash(chain, this)
+      if (!msgHash) {
+        return
+      }
       const recoveredAddress = chain.recoverAddress(msgHash, signature)
       const operatorAddress = chain.toAddress(
         operators.get(operator)?.publicKey!

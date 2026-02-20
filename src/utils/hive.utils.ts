@@ -63,7 +63,7 @@ const createTransaction = async (
 const cache: Map<number, number> = new Map()
 setInterval(() => {
   cache.clear()
-}, 120_000)
+}, 120_000).unref()
 
 /**
  * Find/estimate the highest block_num where its timestamp <= targetTimestamp
@@ -159,20 +159,27 @@ const getLIB = async () => {
   return res.last_irreversible_block_num as number
 }
 
+// Can return undefined if account doesn't exist
 export const getAccount = async (username: string) => {
   const result = await callRPC('condenser_api.get_accounts', [[username]])
-  return result[0] as {
-    active: {
-      account_auths: [string, number][]
-      key_auths: [string, number][]
-      weight_threshold: number
-    }
-    memo_key: string
-  }
+  return result[0] as
+    | {
+        active: {
+          account_auths: [string, number][]
+          key_auths: [string, number][]
+          weight_threshold: number
+        }
+        memo_key: string
+        name: string
+      }
+    | undefined
 }
 
 export const getPublicActiveKeys = async (username: string) => {
   const res = await getAccount(username)
+  if (!res) {
+    return undefined
+  }
   const active = res.active.key_auths
   const pubKeys: string[] = []
   for (let i = 0; i < active.length; i++) {
