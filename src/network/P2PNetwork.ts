@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto'
-import { isIPv4, isIPv6 } from 'node:net'
 import {
   EventDetail,
   FullMessage,
