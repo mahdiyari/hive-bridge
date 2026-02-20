@@ -2,8 +2,11 @@ import { config } from '@/core/config'
 import { EthereumService } from './ethereum/EthereumService'
 import { ChainName } from '@/types/chain.types'
 
-const HIVE_ETH_CONTRACT = config.eth.contract.hive
-const HBD_ETH_CONTRACT = config.eth.contract.hbd
+const contracts = config.eth.testing
+  ? config.eth.sepolia.contract
+  : config.eth.mainnet.contract
+const HIVE_ETH_CONTRACT = contracts.hive
+const HBD_ETH_CONTRACT = contracts.hbd
 
 if (!HIVE_ETH_CONTRACT) {
   throw new Error('Missing contract address for wHIVE')

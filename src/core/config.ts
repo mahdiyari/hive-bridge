@@ -12,6 +12,7 @@ export const config = {
     host: getEnv('HOST') || '::',
     port: Number(getEnv('PORT')) || 3018,
     knownPeers: getEnv('PEERS'),
+    minimumWrapAmount: 10, // 10 HIVE/HBD
   },
   hive: {
     treasury: 'bridge4',
@@ -36,24 +37,46 @@ export const config = {
     },
   },
   eth: {
-    contract: {
-      hive: '0x4A63078adf964Fd28cFB098F40d04A84c9cC80dd',
-      hbd: '0xE64235C82C4cb9bfba6c3F821e56B1FB59c70BE5',
-    },
+    testing: true,
     // Testing on sepolia
-    // More than one so we can cross-check - quorum=2
-    nodes: [
-      'https://ethereum-sepolia-rpc.publicnode.com',
-      // 'https://0xrpc.io/sep',
-      'https://ethereum-sepolia-public.nodies.app',
-      'https://eth-sepolia.api.onfinality.io/public',
-    ],
+    sepolia: {
+      contract: {
+        hive: '0xc27F641264023eEBfE100F43A6BDA1B5546d8cd2',
+        hbd: '0x88A8BFef536594416dE82A75e6E9be7c27dF39d8',
+      },
+      // More than one so we can cross-check - quorum=2
+      nodes: [
+        'https://ethereum-sepolia-rpc.publicnode.com',
+        'https://ethereum-sepolia-public.nodies.app',
+        'https://eth-sepolia.api.onfinality.io/public',
+      ],
+    },
+    mainnet: {
+      contract: {
+        hive: '0x0000',
+        hbd: '0x0000',
+      },
+      // More than one so we can cross-check - quorum=2
+      // There are also other free rpc nodes like Infura but require registration
+      // Bad nodes will spam the logs but shouldn't affect any functionality
+      nodes: [
+        'https://eth1.lava.build',
+        'https://eth.rpc.blxrbdn.com',
+        'https://ethereum-rpc.publicnode.com',
+        'https://ethereum.public.blockpi.network/v1/rpc/public',
+        'https://eth.api.pocket.network',
+        'https://rpc.eth.gateway.fm',
+        'https://public-eth.nownodes.io',
+        'https://rpc.fullsend.to',
+        'https://rpc.mevblocker.io/fast',
+      ],
+    },
   },
   network: {
     p2p: {
       heartbeatInterval: 20_000, // 20 seconds
       maxPeers: 10,
-      messageRateLimit: 50, // per second
+      messageRateLimit: 100, // per second
       handshakeTimeout: 5_000, // 5 seconds
       peerCheckInterval: 60_000, // 1 minute
       peerDiscoverySleepMs: 500,
