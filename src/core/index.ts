@@ -1,5 +1,5 @@
 import { pendingWraps } from '@/core/Wraps'
-import { buildHiveTransfer } from '@/utils/hive.utils'
+import { buildHiveTransfer, getAccount } from '@/utils/hive.utils'
 import { pendingUnwraps } from '@/core/Unwraps'
 import { sleep } from '@/utils/time.utils'
 import { p2pNetwork } from '@/network/P2PNetwork'
@@ -37,6 +37,7 @@ new Governance(hiveService)
 
 const addChainService = (chainService: ChainService) => {
   const contractSymbol = chainService.symbol
+  // Handle wraps
   hiveService.onTransfer(async (detail) => {
     const symbol = detail.amount.split(' ')[1]
     if (symbol !== contractSymbol) {
@@ -47,6 +48,12 @@ const addChainService = (chainService: ChainService) => {
         detail.memo
       }@${new Date(detail.timestamp).toISOString()}`
     )
+    // Convert decimal into integer
+    const amount = Number(detail.amount.split(' ')[0]) * 1000
+    // Do not process amounts lower than minimum
+    if (amount < config.general.minimumWrapAmount * 1000) {
+      return
+    }
     const chain = detail.memo.split(':')[0]
     // Memo must start with chain name e.g. 'ETH:0x123...'
     if (chain !== chainService.name) {
@@ -59,8 +66,6 @@ const addChainService = (chainService: ChainService) => {
     }
     const { trxId, opInTrx } = detail
     const hasMinted = await chainService.hasMinted(trxId, opInTrx)
-    // Convert decimal into integer
-    const amount = Number(detail.amount.split(' ')[0]) * 1000
     if (hasMinted) {
       return
     }
@@ -83,6 +88,18 @@ const addChainService = (chainService: ChainService) => {
   // Handle unwraps
   chainService.onUnwrap(async (res) => {
     logger.debug(`Detected Unwrap ${res.amount}:${res.username}:${res.trx}`)
+    // Validate account
+    try {
+      if (res.username.length < 3 && res.username.length > 16) {
+        return
+      }
+      const account = await getAccount(res.username)
+      if (account?.name !== res.username) {
+        return
+      }
+    } catch {
+      return
+    }
     const amount = `${(Number(res.amount) / 1000).toFixed(3)} ${
       chainService.symbol
     }`
