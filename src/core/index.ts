@@ -54,12 +54,12 @@ const addChainService = (chainService: ChainService) => {
     if (amount < config.general.minimumWrapAmount * 1000) {
       return
     }
-    const chain = detail.memo.split(':')[0]
+    const chainName = detail.memo.split(':')[0].trim()
     // Memo must start with chain name e.g. 'ETH:0x123...'
-    if (chain !== chainService.name) {
+    if (chainName.toLowerCase() !== chainService.name.toLowerCase()) {
       return
     }
-    const address = detail.memo.split(':')[1]
+    const address = detail.memo.split(':')[1].trim()
     // Validate the provided address
     if (!chainService.isAddress(address)) {
       return
@@ -89,12 +89,13 @@ const addChainService = (chainService: ChainService) => {
   chainService.onUnwrap(async (res) => {
     logger.debug(`Detected Unwrap ${res.amount}:${res.username}:${res.trx}`)
     // Validate account
+    const targetUsername = res.username.toLowerCase()
     try {
-      if (res.username.length < 3 && res.username.length > 16) {
+      if (targetUsername.length < 3 && targetUsername.length > 16) {
         return
       }
-      const account = await getAccount(res.username)
-      if (account?.name !== res.username) {
+      const account = await getAccount(targetUsername)
+      if (account?.name !== targetUsername) {
         return
       }
     } catch {
@@ -106,7 +107,7 @@ const addChainService = (chainService: ChainService) => {
     const memo = `${chainService.name}:${res.trx}`
     const trx = await buildHiveTransfer(
       TREASURY,
-      res.username,
+      targetUsername,
       amount,
       memo,
       res.blockTime * 1000
