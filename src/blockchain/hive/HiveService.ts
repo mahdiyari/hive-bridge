@@ -69,6 +69,10 @@ export class HiveService {
         const timestamp = new Date(
           transfers[i][1].timestamp + '.000Z'
         ).getTime()
+        //  Skip transfers older than cutoff
+        if (Date.now() - timestamp > config.general.wrapCutoff) {
+          continue
+        }
         const trxId = transfers[i][1].trx_id
         const opInTrx = transfers[i][1].op_in_trx
         // We have already processed till lastHistoryId

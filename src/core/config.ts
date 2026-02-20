@@ -13,6 +13,10 @@ export const config = {
     port: Number(getEnv('PORT')) || 3018,
     knownPeers: getEnv('PEERS'),
     minimumWrapAmount: 10, // 10 HIVE/HBD
+    // Need to remove old pending wraps to prevent excess RAM usage
+    // Someone could spam small transfers and increase the size of pendingHiveWraps variable
+    // 7 days should be safe enough
+    wrapCutoff: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
   },
   hive: {
     treasury: 'bridge4',

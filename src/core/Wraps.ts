@@ -17,11 +17,7 @@ class Wraps {
   private readonly pendingWrapsByAddress: Map<string, string[]> = new Map()
   private readonly pendingWrapsByUsername: Map<string, string[]> = new Map()
 
-  // Need to remove old pending wraps to prevent excess RAM usage
-  // Someone could spam small transfers and increase the size of pendingHiveWraps variable
-  // We prevent < 1 HIVE/HBD wraps to mitigate this - maybe should be 10 HIVE/HBD?
-  // 7 days should be safe enough
-  private readonly cutoff = 7 * 24 * 60 * 60 * 1000 // 7 days in ms
+  private readonly cutoff = config.general.wrapCutoff
 
   constructor() {
     setTimeout(() => this.checkPendingWraps(), 30_000)
