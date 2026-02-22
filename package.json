@@ -1,6 +1,6 @@
 {
   "name": "hive-bridge",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "description": "hive-bridge",
   "type": "module",
   "scripts": {
@@ -16,6 +16,7 @@
     "ethers": "6.15.0",
     "express": "5.1.0",
     "hive-tx": "^7.0.1",
+    "semver": "^7.7.4",
     "tsx": "^4.21.0",
     "ws": "^8.19.0",
     "zod": "^4.3.6"
@@ -24,6 +25,7 @@
     "@types/dotenv": "^6.1.1",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
+    "@types/semver": "^7.7.1",
     "@types/ws": "^8.18.1",
     "typescript": "^5.9.3"
   },
