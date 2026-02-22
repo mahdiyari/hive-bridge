@@ -1,7 +1,6 @@
 import { z } from 'zod'
-import { ChainName } from '@/types/chain.types'
-import { ChainSymbolKey, Method, ProposalKey } from '@/types/governance.types'
 import { chainNames } from '@/blockchain'
+import { ProposalKey } from '@/types/governance.types'
 
 // Message schemas
 export const HelloMessageSchema = z.object({
@@ -9,6 +8,7 @@ export const HelloMessageSchema = z.object({
   data: z.object({
     peerId: z.uuidv4(),
     port: z.number().int().min(1).max(65535),
+    version: z.string(),
   }),
   private: z.literal(true),
 })
@@ -18,6 +18,7 @@ export const HelloAckMessageSchema = z.object({
   data: z.object({
     peerId: z.uuidv4(),
     remoteId: z.uuidv4(),
+    version: z.string(),
   }),
   private: z.literal(true),
 })
@@ -86,7 +87,7 @@ export const RequestHiveSignaturesSchema = z.object({
 export const GovernanceMessageSchema = z.object({
   type: z.literal('GOVERNANCE'),
   data: z.object({
-    proposalKey: z.string(),
+    proposalKey: z.string<ProposalKey>(),
     operator: z.string().min(3).max(16),
     signature: z.string(),
   }),
@@ -96,7 +97,7 @@ export const GovernanceMessageSchema = z.object({
 export const RequestGovernanceMessageSchema = z.object({
   type: z.literal('REQUEST_GOVERNANCE'),
   data: z.object({
-    proposalKey: z.string(),
+    proposalKey: z.string<ProposalKey>(),
   }),
   private: z.literal(true),
 })
@@ -126,5 +127,19 @@ export const FullMessageSchema = z.intersection(
 )
 
 // Type inference
-export type ZodMessage = z.infer<typeof MessageSchema>
-export type ZodFullMessage = z.infer<typeof FullMessageSchema>
+export type HelloMessage = z.infer<typeof HelloMessageSchema>
+export type HelloAckMessage = z.infer<typeof HelloAckMessageSchema>
+export type SignaturesMessage = z.infer<typeof SignaturesMessageSchema>
+export type HiveSignaturesMessage = z.infer<typeof HiveSignaturesMessageSchema>
+export type HeartbeatMessage = z.infer<typeof HeartbeatMessageSchema>
+export type PeerListMessage = z.infer<typeof PeerListMessageSchema>
+export type RequestPeersMessage = z.infer<typeof RequestPeersMessageSchema>
+export type RequestWrapSignatures = z.infer<typeof RequestWrapSignaturesSchema>
+export type RequestHiveSignatures = z.infer<typeof RequestHiveSignaturesSchema>
+export type GovernanceMessage = z.infer<typeof GovernanceMessageSchema>
+export type RequestGovernanceMessage = z.infer<
+  typeof RequestGovernanceMessageSchema
+>
+
+export type Message = z.infer<typeof MessageSchema>
+export type FullMessage = z.infer<typeof FullMessageSchema>

@@ -2,19 +2,25 @@ import { config } from '@/core/config'
 import { sha256String } from '@/utils/p2p.utils'
 import { PrivateKey } from 'hive-tx'
 import { p2pNetwork } from './P2PNetwork'
-import {
-  GovernanceMessage,
-  HelloAckMessage,
-  HelloMessage,
-  HiveSignaturesMessage,
-  RequestGovernanceMessage,
-  SignaturesMessage,
-} from '@/types/network.types'
 import { WebSocket } from 'ws'
 import { pendingUnwraps } from '@/core/Unwraps'
 import { ChainName } from '@/types/chain.types'
 import { pendingWraps } from '@/core/Wraps'
 import { ProposalKey } from '@/types/governance.types'
+import { version } from '../../package.json'
+import {
+  GovernanceMessage,
+  HeartbeatMessage,
+  HelloAckMessage,
+  HelloMessage,
+  HiveSignaturesMessage,
+  PeerListMessage,
+  RequestGovernanceMessage,
+  RequestHiveSignatures,
+  RequestPeersMessage,
+  RequestWrapSignatures,
+  SignaturesMessage,
+} from './zodSchemas'
 
 export const messageList = {
   /** The first message to send for handshake */
@@ -24,6 +30,7 @@ export const messageList = {
       data: {
         peerId: myId,
         port,
+        version,
       },
       private: true,
     }
@@ -36,6 +43,7 @@ export const messageList = {
       data: {
         peerId: myId,
         remoteId,
+        version,
       },
       private: true,
     }
@@ -54,25 +62,27 @@ export const messageList = {
       timestamp: Date.now(),
     }
     const signature = signHeartbeat(msg, PrivateKey.from(ACTIVE_KEY))
-    p2pNetwork.sendMessage({
+    const heartbeatMsg: HeartbeatMessage = {
       type: 'HEARTBEAT',
       data: {
         ...msg,
         signature,
       },
       private: false,
-    })
+    }
+    p2pNetwork.sendMessage(heartbeatMsg)
   },
 
   /** Ask for signatures for an unwrap */
   REQUEST_HIVE_SIGNATURES: (trxHash: string) => {
-    p2pNetwork.sendMessage({
+    const requestHiveSigMsg: RequestHiveSignatures = {
       type: 'REQUEST_HIVE_SIGNATURES',
       data: {
         trxHash,
       },
       private: true,
-    })
+    }
+    p2pNetwork.sendMessage(requestHiveSigMsg)
   },
   /** Send signatures of an unwrap to all peers or to just provided peer */
   HIVE_SIGNATURES: (unwrapInfo: UnwrapInfo, ws?: WebSocket) => {
@@ -99,28 +109,34 @@ export const messageList = {
 
   /** Ask for more peer addresses */
   REQUEST_PEERS: () => {
-    p2pNetwork.sendMessage({ type: 'REQUEST_PEERS', private: true })
+    const reqPeersMsg: RequestPeersMessage = {
+      type: 'REQUEST_PEERS',
+      private: true,
+    }
+    p2pNetwork.sendMessage(reqPeersMsg)
   },
   /** Share our peer list with other peers who asked for it */
   PEER_LIST: (ws: WebSocket, addresses: string[]) => {
-    p2pNetwork.wsSend(ws, {
+    const peerListMsg: PeerListMessage = {
       type: 'PEER_LIST',
       data: {
         peers: addresses,
       },
       private: true,
-    })
+    }
+    p2pNetwork.wsSend(ws, peerListMsg)
   },
 
   /** Ask for signatures for a wrap */
   REQUEST_WRAP_SIGNATURES: (msgHash: string) => {
-    p2pNetwork.sendMessage({
+    const reqWrapSigsMsg: RequestWrapSignatures = {
       type: 'REQUEST_WRAP_SIGNATURES',
       data: {
         msgHash,
       },
       private: true,
-    })
+    }
+    p2pNetwork.sendMessage(reqWrapSigsMsg)
   },
   /** Share signatures with one or more peers */
   WRAP_SIGNATURES: (wrapInfo: WrapInfo, ws?: WebSocket) => {

@@ -1,8 +1,7 @@
-import { FullMessage } from '@/types/network.types'
 import { messageChecksum } from '@/utils/p2p.utils'
 import { FullMessageSchema } from './zodSchemas'
 
-export const messageParser = (message: string): FullMessage => {
+export const messageParser = (message: string) => {
   // Prevent deep nesting attacks
   if ((message.match(/\{/g) || []).length > 100) {
     // Arbitrary limit
@@ -27,7 +26,7 @@ export const messageParser = (message: string): FullMessage => {
     throw new Error(`Invalid message format: ${errors}`)
   }
 
-  const parsedMessage: FullMessage = validationResult.data as FullMessage
+  const parsedMessage = validationResult.data
 
   const checksum = messageChecksum(parsedMessage)
   if (!checksum) {
