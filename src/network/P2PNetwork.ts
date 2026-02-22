@@ -1,10 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import {
-  EventDetail,
-  FullMessage,
-  Message,
-  PeerMessageEvent,
-} from '../types/network.types'
+import { EventDetail, PeerMessageEvent } from '../types/network.types'
 import express from 'express'
 import { createServer as createSecureServer } from 'node:https'
 import { WebSocketServer, WebSocket } from 'ws'
@@ -12,7 +7,7 @@ import { startListening } from './startListening'
 import { config } from '@/core/config'
 import { peers } from './Peers'
 import { operators } from './Operators'
-import { messageHash, uuidValidate } from '@/utils/p2p.utils'
+import { messageHash } from '@/utils/p2p.utils'
 import { logger } from '@/utils/logger'
 import { API } from './API'
 import { messageList } from './messageList'
@@ -20,6 +15,8 @@ import { messageParser } from './messageParser'
 import { generateSelfSignedCert } from '@/utils/ssl.utils'
 import { IncomingMessage } from 'node:http'
 import { sleep } from '@/utils/time.utils'
+import { checkVersion } from './checkVersion'
+import { FullMessage, Message } from './zodSchemas'
 
 class P2PNetwork {
   // Configuration object
@@ -213,6 +210,10 @@ class P2PNetwork {
             if (message.type === 'HELLO') {
               peerId = message.data.peerId
               port = message.data.port
+              const version = message.data.version
+              if (!checkVersion(version)) {
+                return ws.close()
+              }
               if (peerId === this.myId) {
                 return ws.close()
               }
@@ -221,6 +222,10 @@ class P2PNetwork {
               // HELLO_ACK case
               const remoteId = message.data.remoteId
               if (remoteId !== this.myId) {
+                return ws.close()
+              }
+              const version = message.data.version
+              if (!checkVersion(version)) {
                 return ws.close()
               }
               peerId = message.data.peerId
