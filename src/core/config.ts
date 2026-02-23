@@ -51,7 +51,7 @@ export const config = {
       // More than one so we can cross-check - quorum=2
       nodes: [
         'https://ethereum-sepolia-rpc.publicnode.com',
-        'https://ethereum-sepolia-public.nodies.app',
+        // 'https://ethereum-sepolia-public.nodies.app',
         'https://eth-sepolia.api.onfinality.io/public',
       ],
     },
