@@ -40,7 +40,7 @@ export class EthereumService implements ChainService {
     if (this.nodes.length === 0) {
       throw new Error('Missing Ethereum nodes from config file')
     }
-    let quorum = 2
+    let quorum = config.eth.testing ? 1 : 2
     if (this.nodes.length === 1) {
       logger.warning('More than one Ethereum node is recommended')
       quorum = 1
