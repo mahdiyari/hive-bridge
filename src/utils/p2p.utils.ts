@@ -1,5 +1,5 @@
 import { config } from '@/core/config'
-import { FullMessage } from '@/types/network.types'
+import { FullMessage } from '@/network/zodSchemas'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex } from '@noble/hashes/utils.js'
 import axios from 'axios'
@@ -40,6 +40,27 @@ export const checkPeerStatus = (
 // Arbitary number which the messages are still considered valid
 const MAX_VALID_TIME = config.network.message.maxAgeMs
 
+/** Deterministic JSON serialization for hashing (object keys sorted recursively) */
+export const canonicalJsonStringify = (value: unknown): string => {
+  const normalize = (input: unknown): unknown => {
+    if (Array.isArray(input)) {
+      return input.map(normalize)
+    }
+    if (input && typeof input === 'object') {
+      const obj = input as Record<string, unknown>
+      const sortedKeys = Object.keys(obj).sort()
+      const normalized: Record<string, unknown> = {}
+      for (const key of sortedKeys) {
+        normalized[key] = normalize(obj[key])
+      }
+      return normalized
+    }
+    return input
+  }
+
+  return JSON.stringify(normalize(value))
+}
+
 /** Verify the hash of the message and verify the message is not older than 8 seconds */
 export const messageChecksum = (message: FullMessage) => {
   try {
@@ -59,7 +80,7 @@ export const messageChecksum = (message: FullMessage) => {
     }
     const hash = jsonMsg.hash
     delete jsonMsg.hash
-    const newHash = messageHash(JSON.stringify(jsonMsg))
+    const newHash = messageHash(canonicalJsonStringify(jsonMsg))
     if (hash !== newHash) {
       return false
     }

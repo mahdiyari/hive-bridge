@@ -7,7 +7,7 @@ import { startListening } from './startListening'
 import { config } from '@/core/config'
 import { peers } from './Peers'
 import { operators } from './Operators'
-import { messageHash } from '@/utils/p2p.utils'
+import { canonicalJsonStringify, messageHash } from '@/utils/p2p.utils'
 import { logger } from '@/utils/logger'
 import { API } from './API'
 import { messageList } from './messageList'
@@ -95,7 +95,7 @@ class P2PNetwork {
       peers.addMessage(msg.hash, msg)
     } else {
       const timestamp = Date.now()
-      const hash = messageHash(JSON.stringify({ ...msg, timestamp }))
+      const hash = messageHash(canonicalJsonStringify({ ...msg, timestamp }))
       fullMessage = { ...msg, timestamp, hash }
       peers.addMessage(hash, fullMessage)
     }
