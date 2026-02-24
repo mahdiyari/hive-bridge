@@ -19,6 +19,7 @@ const BadMethod = (method: string) =>
 export class EthereumService implements ChainService {
   private readonly CONFIRMATIONS = 12
   private readonly POLLING_INTERVAL = 20_000 // 20s
+  private readonly SIGNERS_CACHE_TTL = 30_000 // 30s
   private readonly historyDepth = 500 // Each block ~12s - 500 = 100 minutes
   private readonly nodes = config.eth.testing
     ? config.eth.sepolia.nodes
@@ -26,6 +27,11 @@ export class EthereumService implements ChainService {
   private readonly provider: ethers.FallbackProvider
   private readonly contract: ethers.Contract
   private readonly event = new EventTarget()
+  private signersCache?: {
+    value: [username: string, address: string][]
+    expiresAt: number
+  }
+  private signersCachePromise?: Promise<[username: string, address: string][]>
   lastPolledBlock = 0
   readonly contractAddress: string
   readonly chainId = config.eth.testing ? 0xaa36a7 : 0x1
@@ -205,11 +211,31 @@ export class EthereumService implements ChainService {
   }
 
   async getSigners(): Promise<[string, string][]> {
-    const signers = await this.contract.getAllSigners()
-    if (!signers) {
-      throw NoSignersFound()
+    const now = Date.now()
+    // If cached, return the cache
+    if (this.signersCache && this.signersCache.expiresAt > now) {
+      return this.signersCache.value
     }
-    return signers
+    // If already waiting for a rpc call, don't call again
+    if (this.signersCachePromise) {
+      return this.signersCachePromise
+    }
+    this.signersCachePromise = (async () => {
+      const signers = await this.contract.getAllSigners()
+      if (!signers) {
+        throw NoSignersFound()
+      }
+      this.signersCache = {
+        value: signers,
+        expiresAt: Date.now() + this.SIGNERS_CACHE_TTL,
+      }
+      return signers
+    })()
+    try {
+      return await this.signersCachePromise
+    } finally {
+      this.signersCachePromise = undefined
+    }
   }
 
   /** Return the added address of an operator from their username

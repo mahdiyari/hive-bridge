@@ -130,11 +130,17 @@ class Wraps {
       }
       const recoveredAddress = ethers.recoverAddress(msgHash, signature)
       const chain = wrap.chainInstance
-      const publicKey = operators.get(operator)?.publicKey
-      if (!publicKey) {
-        return
+      let address: string | undefined
+      try {
+        const signers = await chain.getSigners()
+        address = signers.find(([username]) => username === operator)?.[1]
+      } catch {
+        const publicKey = operators.get(operator)?.publicKey
+        if (!publicKey) {
+          return
+        }
+        address = chain.toAddress(publicKey)
       }
-      const address = chain.toAddress(publicKey)
       if (!address) {
         return
       }
