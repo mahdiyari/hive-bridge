@@ -1,8 +1,8 @@
-import { FullMessage } from '@/types/network.types'
 import { WebSocket } from 'ws'
 import { logger } from '@/utils/logger'
 import { checkPeerStatus } from '@/utils/p2p.utils'
 import { isIPv6 } from 'net'
+import { FullMessage } from './zodSchemas'
 
 class Peer {
   public ip: string
