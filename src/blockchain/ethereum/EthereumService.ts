@@ -17,7 +17,6 @@ const BadMethod = (method: string) =>
   new Error(`Got a bad proposal method: ${method}`)
 
 export class EthereumService implements ChainService {
-  private readonly CONFIRMATIONS = 12
   private readonly POLLING_INTERVAL = 20_000 // 20s
   private readonly SIGNERS_CACHE_TTL = 30_000 // 30s
   private readonly historyDepth = 500 // Each block ~12s - 500 = 100 minutes
@@ -51,18 +50,17 @@ export class EthereumService implements ChainService {
       logger.warning('More than one Ethereum node is recommended')
       quorum = 1
     }
-    const providers: ethers.JsonRpcProvider[] = []
+    const providers: any[] = []
     this.nodes.forEach((node) => {
       const pv = new ethers.JsonRpcProvider(node)
       pv.on('error', (e) => {
         logger.debug(node, e)
       })
-      providers.push(pv)
+      providers.push({ provider: pv, stallTimeout: 1000 })
     })
     // FallbackProvier calls multiple nodes at the same time and cross-checks by quorum
     this.provider = new ethers.FallbackProvider(providers, undefined, {
       quorum: quorum,
-      eventQuorum: quorum,
     })
     this.contract = new ethers.Contract(
       this.contractAddress,
@@ -266,9 +264,11 @@ export class EthereumService implements ChainService {
 
   /** Call periodically to get the Unwrap events from the contract to perform an Unwrap */
   private async getUnwrapEvents(retries = 0): Promise<void> {
-    const headBlock = await this.provider.getBlockNumber().catch(() => {})
+    const finalizedBlock = await this.provider
+      .getBlock('finalized')
+      .catch(() => {})
     // headblock can be a bitch in quorum so be patient
-    if (!headBlock) {
+    if (!finalizedBlock) {
       if (retries < 3) {
         await sleep(1000)
         return this.getUnwrapEvents(++retries)
@@ -276,20 +276,20 @@ export class EthereumService implements ChainService {
         throw BadData()
       }
     }
-    const safeBlock = headBlock - this.CONFIRMATIONS
+    const safeBlock = finalizedBlock.number
     // We don't need the too old data - this should run only the first time
     if (safeBlock - this.lastPolledBlock > this.historyDepth) {
       this.lastPolledBlock = safeBlock - this.historyDepth
     }
     if (safeBlock > this.lastPolledBlock) {
       const filter = this.contract.filters.Unwrap()
-      const result = await this.contract.queryFilter(
+      const results = await this.contract.queryFilter(
         filter,
         this.lastPolledBlock + 1,
         safeBlock
       )
-      result.forEach(async (res) => {
-        const eventLog = <ethers.EventLog>res
+      for (const event of results) {
+        const eventLog = <ethers.EventLog>event
         const blockTime = (await eventLog.getBlock()).timestamp
         // Create and dispatch a custom event to be picked up by this.onUnwrap()
         const customEvent = new CustomEvent('unwrap', {
@@ -303,7 +303,7 @@ export class EthereumService implements ChainService {
           },
         })
         this.event.dispatchEvent(customEvent)
-      })
+      }
       this.lastPolledBlock = safeBlock
     }
   }

@@ -105,8 +105,6 @@ export const API = (app: Express) => {
         connected_operators: opsConnected,
         total_operators: operators.size,
       },
-      // TODO: What else do we import here? Contract addresses maybe?
-      // The idea is to have everything a UI would need
       config: {
         minimum_wrap_amount: config.general.minimumWrapAmount,
         hive_treasury: config.hive.treasury,
