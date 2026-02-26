@@ -79,7 +79,7 @@ export const config = {
   network: {
     p2p: {
       heartbeatInterval: 20_000, // 20 seconds
-      maxPeers: 10,
+      maxPeers: 18,
       messageRateLimit: 100, // per second
       handshakeTimeout: 5_000, // 5 seconds
       peerCheckInterval: 60_000, // 1 minute
