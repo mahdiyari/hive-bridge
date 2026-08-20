@@ -52,7 +52,7 @@ export const config = {
       nodes: [
         'https://ethereum-sepolia-rpc.publicnode.com',
         // 'https://ethereum-sepolia-public.nodies.app',
-        'https://eth-sepolia.api.onfinality.io/public',
+        'https://api.zan.top/eth-sepolia',
       ],
     },
     mainnet: {
