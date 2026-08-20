@@ -52,7 +52,7 @@ export const config = {
       nodes: [
         'https://ethereum-sepolia-rpc.publicnode.com',
         // 'https://ethereum-sepolia-public.nodies.app',
-        'https://lb.routeme.sh/rpc/evm/11155111',
+        // 'https://lb.routeme.sh/rpc/evm/11155111',
       ],
     },
     mainnet: {
